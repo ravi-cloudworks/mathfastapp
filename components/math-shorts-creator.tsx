@@ -136,24 +136,24 @@ export default function TeacherShortsApp() {
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')!
-      
+
       // Calculate target dimensions (9:16 ratio)
       const targetWidth = 720 // Standard width for good quality
       const targetHeight = 1280 // 720 * (16/9) = 1280
-      
+
       canvas.width = targetWidth
       canvas.height = targetHeight
-      
+
       // Fill with white background
       ctx.fillStyle = 'white'
       ctx.fillRect(0, 0, targetWidth, targetHeight)
-      
+
       // Calculate how to fit the image in 9:16 container
       const imageAspect = originalImage.width / originalImage.height
       const targetAspect = targetWidth / targetHeight
-      
+
       let drawWidth, drawHeight, drawX, drawY
-      
+
       if (imageAspect > targetAspect) {
         // Image is wider - fit by width
         drawWidth = targetWidth
@@ -167,13 +167,13 @@ export default function TeacherShortsApp() {
         drawX = (targetWidth - drawWidth) / 2
         drawY = 0
       }
-      
+
       // Draw the image centered in the canvas
       ctx.drawImage(originalImage, drawX, drawY, drawWidth, drawHeight)
-      
+
       console.log(`🎨 Resized image: ${originalImage.width}x${originalImage.height} → ${targetWidth}x${targetHeight}`)
       console.log(`🎨 Draw position: ${drawX.toFixed(1)}, ${drawY.toFixed(1)}, ${drawWidth.toFixed(1)}x${drawHeight.toFixed(1)}`)
-      
+
       // Convert to data URL
       resolve(canvas.toDataURL('image/jpeg', 0.95))
     })
@@ -188,39 +188,39 @@ export default function TeacherShortsApp() {
           const originalHeight = img.naturalHeight
           const originalAspectRatio = originalWidth / originalHeight
           const isPortrait = originalHeight > originalWidth
-          
+
           console.log(`📱 Original image: ${originalWidth}x${originalHeight}, aspect ratio: ${originalAspectRatio.toFixed(2)}, portrait: ${isPortrait}`)
-          
+
           // Resize image to 9:16 ratio
           const resizedDataUrl = await resizeImageTo9x16(img)
-          
+
           // Load the resized image for text detection
           const resizedImg = new window.Image()
           resizedImg.onload = async () => {
             const width = resizedImg.naturalWidth
             const height = resizedImg.naturalHeight
             const aspectRatio = width / height
-            
+
             console.log(`📱 Resized image: ${width}x${height}, aspect ratio: ${aspectRatio.toFixed(2)}`)
-            
-            setImageDimensions({ 
-              width, 
-              height, 
+
+            setImageDimensions({
+              width,
+              height,
               isPortrait: height > width,
               aspectRatio
             })
-            
+
             // Update the image list with resized version
             setImageList(prev => {
               const newList = [...prev]
               newList[currentImageIndex] = resizedDataUrl
               return newList
             })
-            
+
             // Run text detection on resized image
             const steps = await detectTextLinesForReveal(resizedImg)
             setRevealSteps(steps)
-            
+
             // Check if no steps were detected
             if (steps.length === 0) {
               console.warn('⚠️ No text lines detected in resized image')
@@ -233,18 +233,18 @@ export default function TeacherShortsApp() {
               setRevealSteps(fallbackSteps)
               console.log('🔧 Created fallback reveal steps:', fallbackSteps.length)
             }
-            
+
             setError(null) // Clear any previous errors
             resolve()
           }
-          
+
           resizedImg.onerror = (e) => {
             console.error('❌ Error loading resized image:', e)
             reject(new Error('Failed to process resized image.'))
           }
-          
+
           resizedImg.src = resizedDataUrl
-          
+
         } catch (error) {
           console.error('❌ Error in image processing:', error)
           reject(error)
@@ -296,47 +296,47 @@ export default function TeacherShortsApp() {
       setCurrentStep(0)
       setRetryCount(0) // Reset retry count
       await processImage(imageUrls[0])
-      
+
       // After processing, show instructions immediately
       setShowScreenRecordingInstructions(true)
-      
+
     } catch (error) {
       console.error("❌ Error processing files:", error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       setError(`Processing failed: ${errorMessage}. Please try again or use a different image.`)
     }
-    
+
     setIsProcessingLines(false)
   }, [processImage])
 
   const startCamera = useCallback(async () => {
     console.log('🎥 Starting camera process...')
     setCameraState('loading') // Set to loading first to render video element
-    
+
     try {
       // Check if mediaDevices is available
       if (!navigator.mediaDevices) {
         console.error('🎥 navigator.mediaDevices not available')
         throw new Error('Camera not supported on this device/browser')
       }
-      
+
       // Check if getUserMedia is available
       if (!navigator.mediaDevices.getUserMedia) {
         console.error('🎥 getUserMedia not available')
         throw new Error('Camera access not supported on this device/browser')
       }
-      
+
       // Check if we're on HTTPS (required for mobile)
       const isSecure = location.protocol === 'https:' || location.hostname === 'localhost'
       if (!isSecure) {
         console.error('🎥 Not on HTTPS - camera may not work on mobile')
       }
-      
+
       console.log('🎥 Requesting camera access...')
       console.log('🎥 Protocol:', location.protocol)
       console.log('🎥 Hostname:', location.hostname)
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user', // Front camera
           width: { ideal: 640 },
@@ -345,56 +345,56 @@ export default function TeacherShortsApp() {
         audio: false
       })
       console.log('🎥 Camera access granted, stream received:', stream)
-      
+
       setCameraStream(stream)
-      
+
       // Wait a bit for video element to be available
       setTimeout(() => {
         if (videoRef.current) {
           console.log('🎥 Video element found, setting up...')
           videoRef.current.srcObject = stream
-          
+
           // Set up multiple ways to detect when camera is ready
           const markAsReady = () => {
             console.log('🎥 Camera marked as ready!')
             setCameraState('ready')
             // Note: Stream will be attached to visible video via useEffect
           }
-          
+
           // Primary: onloadedmetadata event
           videoRef.current.onloadedmetadata = () => {
             console.log('🎥 onloadedmetadata fired')
             markAsReady()
           }
-          
+
           // Fallback: oncanplay event
           videoRef.current.oncanplay = () => {
             console.log('🎥 oncanplay fired')
             markAsReady()
           }
-          
+
           // Additional events for debugging
           videoRef.current.onloadstart = () => console.log('🎥 onloadstart fired')
           videoRef.current.onloadeddata = () => console.log('🎥 onloadeddata fired')
           videoRef.current.oncanplaythrough = () => console.log('🎥 oncanplaythrough fired')
           videoRef.current.onplaying = () => console.log('🎥 onplaying fired')
           videoRef.current.onerror = (e) => console.error('🎥 Video error:', e)
-          
+
           // Final fallback: timeout after 3 seconds
           const timeoutId = setTimeout(() => {
             console.log('🎥 Camera ready via timeout fallback (3s)')
             markAsReady()
           }, 3000)
-          
+
           // Clear timeout if camera loads normally
           videoRef.current.addEventListener('loadedmetadata', () => {
             console.log('🎥 Clearing timeout - metadata loaded')
             clearTimeout(timeoutId)
           }, { once: true })
-          
+
           console.log('🎥 Calling video.play()...')
           const playPromise = videoRef.current.play()
-          
+
           if (playPromise !== undefined) {
             playPromise
               .then(() => {
@@ -404,17 +404,17 @@ export default function TeacherShortsApp() {
                 console.error('🎥 Video play() failed:', error)
               })
           }
-          
+
           console.log('🎥 Video setup complete, waiting for events...')
         } else {
           console.error('🎥 Video element still not found!')
           setCameraState('denied')
         }
       }, 200) // Wait 200ms for render
-      
+
     } catch (err) {
       console.error("🎥 Error accessing camera:", err)
-      
+
       // Type-safe error handling
       if (err instanceof Error) {
         console.error("🎥 Error details:", {
@@ -425,7 +425,7 @@ export default function TeacherShortsApp() {
       } else {
         console.error("🎥 Unknown error type:", err)
       }
-      
+
       setCameraState('denied')
     }
   }, [])
@@ -444,10 +444,10 @@ export default function TeacherShortsApp() {
   useEffect(() => {
     const initializeApp = async () => {
       console.log('🚀 Initializing Math Fast APP Creator...')
-      
+
       // Simulate initialization tasks that happen in the background
       await new Promise(resolve => setTimeout(resolve, 1500)) // 1.5 second delay
-      
+
       // Test canvas functionality
       try {
         const canvas = document.createElement('canvas')
@@ -459,7 +459,7 @@ export default function TeacherShortsApp() {
       } catch (error) {
         console.error('❌ Canvas initialization failed:', error)
       }
-      
+
       // Test file reading capability
       try {
         if (!window.FileReader) {
@@ -469,11 +469,11 @@ export default function TeacherShortsApp() {
       } catch (error) {
         console.error('❌ File reading initialization failed:', error)
       }
-      
+
       console.log('🎉 App initialization complete!')
       setIsAppInitialized(true)
     }
-    
+
     initializeApp()
   }, [])
 
@@ -513,7 +513,7 @@ export default function TeacherShortsApp() {
       setCurrentImageIndex(nextIndex)
       setCurrentStep(0)
       setIsProcessingLines(true)
-      
+
       try {
         await processImage(imageList[nextIndex])
         setCurrentStep(1)
@@ -521,7 +521,7 @@ export default function TeacherShortsApp() {
         console.error("Error processing next image:", error)
         alert("Error processing next image. Please try again.")
       }
-      
+
       setIsProcessingLines(false)
     }
   }, [currentStep, revealSteps.length, currentImageIndex, imageList, processImage])
@@ -533,7 +533,7 @@ export default function TeacherShortsApp() {
       const prevIndex = currentImageIndex - 1
       setCurrentImageIndex(prevIndex)
       setIsProcessingLines(true)
-      
+
       try {
         await processImage(imageList[prevIndex])
         const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -550,7 +550,7 @@ export default function TeacherShortsApp() {
         console.error("Error processing previous image:", error)
         alert("Error processing previous image. Please try again.")
       }
-      
+
       setIsProcessingLines(false)
     }
   }, [currentStep, currentImageIndex, imageList, processImage, detectTextLinesForReveal])
@@ -575,7 +575,7 @@ export default function TeacherShortsApp() {
   const handleRetry = useCallback(() => {
     setRetryCount(prev => prev + 1)
     setError(null)
-    
+
     if (imageList.length > 0) {
       // Retry processing current image
       setIsProcessingLines(true)
@@ -598,12 +598,12 @@ export default function TeacherShortsApp() {
     if (!imageDimensions || revealSteps.length === 0) return 0
     if (currentStep === 0) return 0
     if (currentStep > revealSteps.length) return imageDimensions.height
-    
+
     // Simple reveal - no conversion needed since image is already 9:16
     const revealHeight = revealSteps[currentStep - 1].revealHeight
-    
+
     console.log(`🎯 Reveal step ${currentStep}: Height=${revealHeight}px`)
-    
+
     return revealHeight
   }
 
@@ -611,33 +611,44 @@ export default function TeacherShortsApp() {
 
   // Add viewport meta tag for mobile
   useEffect(() => {
-    // Set viewport meta tag to prevent zooming and ensure proper mobile display
+    // More mobile-friendly viewport
     const viewport = document.querySelector('meta[name=viewport]');
     if (viewport) {
-      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, viewport-fit=cover');
     } else {
       const meta = document.createElement('meta');
       meta.name = 'viewport';
-      meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+      meta.content = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
       document.getElementsByTagName('head')[0].appendChild(meta);
     }
-
-    // Prevent body scroll and zoom
-    document.body.style.overflow = 'hidden';
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
+  
+    // Less aggressive body styling for mobile
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.documentElement.style.height = '100%';
     document.body.style.height = '100%';
-    document.documentElement.style.overflow = 'hidden';
-
-    // Cleanup on unmount
+  
     return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
+      document.body.style.margin = '';
+      document.body.style.padding = '';
+      document.documentElement.style.height = '';
       document.body.style.height = '';
-      document.documentElement.style.overflow = '';
     };
   }, []);
+
+  useEffect(() => {
+    if (currentImageSrc) {
+      console.log('📱 Mobile Debug:', {
+        currentImageSrc: !!currentImageSrc,
+        currentStep,
+        revealSteps: revealSteps.length,
+        cameraState,
+        imageDimensions,
+        windowSize: { width: window.innerWidth, height: window.innerHeight },
+        userAgent: navigator.userAgent
+      });
+    }
+  }, [currentImageSrc, currentStep, revealSteps.length, cameraState, imageDimensions]);
 
   // App initialization loader
   if (!isAppInitialized) {
@@ -652,7 +663,7 @@ export default function TeacherShortsApp() {
               <h1 className="text-2xl font-bold text-slate-900 mb-2">Math Fast APP</h1>
               <p className="text-slate-600">Preparing AI for content creation</p>
             </div>
-            
+
             <div className="space-y-4 mb-6">
               <div className="flex items-center space-x-3">
                 <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
@@ -667,11 +678,11 @@ export default function TeacherShortsApp() {
                 <span className="text-sm text-slate-700">Setting up camera support...</span>
               </div>
             </div>
-            
+
             <div className="w-full bg-slate-200 rounded-full h-2 mb-4">
               <div className="bg-gradient-to-r from-purple-600 to-blue-600 h-2 rounded-full animate-pulse" style={{ width: '75%' }}></div>
             </div>
-            
+
             <p className="text-xs text-slate-500">
               Please wait while we prepare everything for the best experience
             </p>
@@ -688,7 +699,7 @@ export default function TeacherShortsApp() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6">
             <h2 className="text-xl font-bold text-center mb-6 text-slate-900">Choose Recording Mode</h2>
-            
+
             <div className="space-y-4 mb-6">
               <Button
                 onClick={chooseCameraMode}
@@ -697,7 +708,7 @@ export default function TeacherShortsApp() {
                 <Camera className="h-6 w-6" />
                 <span>Camera + Voice</span>
               </Button>
-              
+
               <Button
                 onClick={chooseAudioOnly}
                 variant="outline"
@@ -707,7 +718,7 @@ export default function TeacherShortsApp() {
                 <span>Voice Only</span>
               </Button>
             </div>
-            
+
             <p className="text-sm text-slate-600 text-center">
               Choose camera + voice to show your face, or voice only for audio explanation
             </p>
@@ -743,13 +754,13 @@ export default function TeacherShortsApp() {
           muted
           style={{ display: 'none' }}
         />
-        
+
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-bold mb-4 text-slate-900">Starting Camera</h2>
             <div className="animate-pulse h-8 w-8 bg-purple-600 rounded-full mx-auto mb-4"></div>
             <p className="text-slate-600 mb-4">Camera is starting up...</p>
-            
+
             <Button
               onClick={() => {
                 console.log('🎥 Emergency skip - forcing ready state')
@@ -769,34 +780,34 @@ export default function TeacherShortsApp() {
   if (cameraState === 'denied') {
     const isSecure = typeof window !== 'undefined' && (location.protocol === 'https:' || location.hostname === 'localhost')
     const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-    
+
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-4 overflow-hidden">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-bold mb-4 text-slate-900">Camera Access Issue</h2>
-            
+
             {!isSecure && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm text-red-800">
-                  <strong>Security Issue:</strong> Camera requires HTTPS on mobile devices. 
+                  <strong>Security Issue:</strong> Camera requires HTTPS on mobile devices.
                   This site is using HTTP which blocks camera access.
                 </p>
               </div>
             )}
-            
+
             {isMobile && (
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Mobile Tips:</strong><br/>
-                  • Make sure camera permission is enabled<br/>
-                  • Try refreshing the page<br/>
-                  • Check if other apps are using the camera<br/>
+                  <strong>Mobile Tips:</strong><br />
+                  • Make sure camera permission is enabled<br />
+                  • Try refreshing the page<br />
+                  • Check if other apps are using the camera<br />
                   {!isSecure && '• Use HTTPS version of this site'}
                 </p>
               </div>
             )}
-            
+
             <p className="text-slate-600 mb-6">You can still record with voice only</p>
             <div className="space-y-3">
               <Button
@@ -826,7 +837,7 @@ export default function TeacherShortsApp() {
         <Card className="w-full max-w-md">
           <CardContent className="p-6">
             <h2 className="text-xl font-bold text-center mb-6 text-slate-900">Ready to Record!</h2>
-            
+
             <div className="space-y-4 mb-6">
               <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
                 <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</div>
@@ -835,7 +846,7 @@ export default function TeacherShortsApp() {
                   <p className="text-sm text-blue-700">Open Control Center → Screen Recording</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
                 <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">2</div>
                 <div>
@@ -843,7 +854,7 @@ export default function TeacherShortsApp() {
                   <p className="text-sm text-green-700">Switch back when recording starts</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
                 <div className="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold">3</div>
                 <div>
@@ -852,7 +863,7 @@ export default function TeacherShortsApp() {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-3">
               <Button
                 onClick={handleReadyToRecord}
@@ -860,7 +871,7 @@ export default function TeacherShortsApp() {
               >
                 I'm Ready - Start Revealing!
               </Button>
-              
+
               <Button
                 onClick={() => setShowScreenRecordingInstructions(false)}
                 variant="outline"
@@ -896,7 +907,7 @@ export default function TeacherShortsApp() {
                   For best YouTube Shorts results, use portrait images (9:16 ratio)
                 </p>
               </div>
-              
+
               {error && (
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm text-red-800 mb-3">{error}</p>
@@ -921,7 +932,7 @@ export default function TeacherShortsApp() {
                   </div>
                 </div>
               )}
-              
+
               <input
                 type="file"
                 accept="image/*"
@@ -948,7 +959,7 @@ export default function TeacherShortsApp() {
                   </>
                 )}
               </Button>
-              
+
               {/* Aspect ratio guidance */}
               <div className="mt-4 flex justify-center space-x-4 text-xs text-slate-500">
                 <div className="flex items-center space-x-1">
@@ -969,15 +980,14 @@ export default function TeacherShortsApp() {
         </div>
       )}
 
-      {/* Recording Phase (Step 2) - Clean fullscreen layout */}
+      {/* Recording Phase (Step 2) - Mobile-optimized fullscreen layout */}
       {currentImageSrc && (
         <div className="relative h-screen flex flex-col overflow-hidden bg-slate-50">
-          {/* Professional Header with branding - SINGLE TITLE */}
-          <div className="flex-shrink-0 py-4 px-4 text-center bg-white shadow-sm relative">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+          {/* Professional Header with branding */}
+          <div className="flex-shrink-0 py-3 px-4 text-center bg-white shadow-sm relative">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
               Math Fast APP
             </h1>
-            {/* Reset button as close icon - in header */}
             <Button
               onClick={handleReset}
               variant="ghost"
@@ -988,25 +998,33 @@ export default function TeacherShortsApp() {
             </Button>
           </div>
 
-          {/* Main content area with fixed card size */}
-          <div className="flex-1 flex items-center justify-center p-4">
-            {/* Fixed size card container */}
-            <div className="relative w-full max-w-sm">
-              <div 
+          {/* Main content area - MOBILE OPTIMIZED */}
+          <div className="flex-1 flex items-center justify-center p-4" style={{ minHeight: 0 }}>
+            {/* Mobile-friendly card container */}
+            <div className="relative w-full max-w-sm mx-auto">
+              <div
                 className="relative w-full bg-white rounded-2xl overflow-hidden shadow-xl"
                 style={{
-                  height: 'calc(100vh - 180px)', // Fixed height accounting for header and controls
-                  aspectRatio: '9/16'
+                  // Use viewport units that work better on mobile
+                  height: window.innerHeight > 800 ? '70vh' : '60vh',
+                  maxHeight: '600px',
+                  minHeight: '400px'
                 }}
               >
+                {/* Image with better mobile rendering */}
                 <img
                   src={currentImageSrc}
                   alt="Math problem"
-                  className="absolute inset-0 w-full h-full object-contain bg-white" // Back to object-contain with white background
+                  className="absolute inset-0 w-full h-full object-contain bg-white"
                   ref={imageRef}
+                  style={{
+                    // Force hardware acceleration on mobile
+                    transform: 'translateZ(0)',
+                    backfaceVisibility: 'hidden'
+                  }}
                 />
-                
-                {/* Processing overlay */}
+
+                {/* Rest of overlays remain the same... */}
                 {isProcessingLines && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white z-20">
                     <div className="text-center">
@@ -1015,8 +1033,7 @@ export default function TeacherShortsApp() {
                     </div>
                   </div>
                 )}
-                
-                {/* Error overlay */}
+
                 {error && !isProcessingLines && (
                   <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-white z-20">
                     <div className="text-center p-4">
@@ -1043,10 +1060,10 @@ export default function TeacherShortsApp() {
                     </div>
                   </div>
                 )}
-                
-                {/* Reveal overlay */}
+
+                {/* Reveal overlay - simplified for mobile */}
                 {imageDimensions && (
-                  <div className="absolute inset-0 z-10">
+                  <div className="absolute inset-0 z-10 pointer-events-none">
                     <div
                       className="absolute bg-white transition-all duration-700 ease-in-out"
                       style={{
@@ -1062,9 +1079,9 @@ export default function TeacherShortsApp() {
             </div>
           </div>
 
-          {/* Camera overlay - positioned OUTSIDE the card, in top area */}
+          {/* Camera overlay - better mobile positioning */}
           {cameraState === 'ready' && cameraStream && (
-            <div className="absolute top-16 right-4 w-16 h-16 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
+            <div className="absolute top-16 right-4 w-20 h-20 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
               <video
                 ref={visibleVideoRef}
                 autoPlay
@@ -1076,71 +1093,80 @@ export default function TeacherShortsApp() {
                 variant="ghost"
                 size="icon"
                 onClick={stopCamera}
-                className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
+                className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
               >
                 <X className="h-3 w-3" />
               </Button>
             </div>
           )}
 
-          {/* Audio-only indicator - positioned OUTSIDE the card */}
+          {/* Audio-only indicator */}
           {cameraState === 'audio-only' && (
-            <div className="absolute top-16 right-4 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
-              <Mic className="h-5 w-5 text-white" />
+            <div className="absolute top-16 right-4 w-14 h-14 bg-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
+              <Mic className="h-6 w-6 text-white" />
             </div>
           )}
 
-          {/* Bottom controls - OUTSIDE the card, in separate area */}
-          <div className="flex-shrink-0 pb-6 pt-2">
-            <div className="flex justify-center">
-              <div className="flex items-center space-x-4">
-                {/* Initial start button */}
-                {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (
-                  <Button
-                    onClick={handleStartRecording}
-                    size="lg"
-                    className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
-                  >
-                    <Camera className="mr-2 h-5 w-5" />
-                    Start Recording
-                  </Button>
-                )}
-                
-                {/* Ready to reveal button */}
-                {(cameraState === 'ready' || cameraState === 'audio-only') && currentStep === 0 && (
-                  <Button
-                    onClick={() => setCurrentStep(1)}
-                    size="lg"
-                    className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg"
-                  >
-                    Start Revealing
-                  </Button>
-                )}
-                
-                {/* Navigation controls during recording */}
-                {currentStep > 0 && (cameraState === 'ready' || cameraState === 'audio-only') && (
-                  <div className="flex items-center space-x-3">
+          {/* Bottom controls - FIXED POSITIONING for mobile */}
+          <div className="flex-shrink-0 pb-safe-area-inset-bottom bg-white border-t border-slate-200">
+            <div className="p-4">
+              <div className="flex justify-center">
+                <div className="flex items-center space-x-4">
+                  {/* Initial start button */}
+                  {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (
                     <Button
-                      onClick={handlePrevStep}
-                      disabled={currentStep <= 1 && currentImageIndex <= 0}
-                      size="sm"
-                      variant="outline"
-                      className="bg-white hover:bg-slate-50 shadow-lg border-slate-300"
+                      onClick={handleStartRecording}
+                      size="lg"
+                      className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-6 py-3"
                     >
-                      <ArrowLeft className="h-4 w-4" />
+                      <Camera className="mr-2 h-5 w-5" />
+                      Start Recording
                     </Button>
-                    
+                  )}
+
+                  {/* Ready to reveal button */}
+                  {(cameraState === 'ready' || cameraState === 'audio-only') && currentStep === 0 && (
                     <Button
-                      onClick={handleNextStep}
-                      disabled={currentStep >= revealSteps.length && currentImageIndex >= imageList.length - 1}
-                      size="sm"
-                      variant="outline"
-                      className="bg-white hover:bg-slate-50 shadow-lg border-slate-300"
+                      onClick={() => setCurrentStep(1)}
+                      size="lg"
+                      className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-6 py-3"
                     >
-                      <ArrowRight className="h-4 w-4" />
+                      Start Revealing
                     </Button>
-                  </div>
-                )}
+                  )}
+
+                  {/* Navigation controls during recording - LARGER for mobile */}
+                  {currentStep > 0 && (cameraState === 'ready' || cameraState === 'audio-only') && (
+                    <div className="flex items-center space-x-4">
+                      <Button
+                        onClick={handlePrevStep}
+                        disabled={currentStep <= 1 && currentImageIndex <= 0}
+                        size="lg"
+                        variant="outline"
+                        className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 px-4 py-3"
+                      >
+                        <ArrowLeft className="h-5 w-5" />
+                        <span className="ml-1 hidden sm:inline">Prev</span>
+                      </Button>
+
+                      {/* Step indicator */}
+                      <div className="px-3 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700">
+                        {currentStep}/{revealSteps.length}
+                      </div>
+
+                      <Button
+                        onClick={handleNextStep}
+                        disabled={currentStep >= revealSteps.length && currentImageIndex >= imageList.length - 1}
+                        size="lg"
+                        variant="outline"
+                        className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 px-4 py-3"
+                      >
+                        <span className="mr-1 hidden sm:inline">Next</span>
+                        <ArrowRight className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

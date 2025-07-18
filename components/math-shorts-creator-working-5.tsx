@@ -533,7 +533,7 @@ export default function MathShortsCreator() {
               <Camera className="h-8 w-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Math Shorts Creator</h1>
-            <p className="text-gray-600">Preparing AI for Teacher Shorts</p>
+            <p className="text-gray-600">Preparing AI for Math Fast APP</p>
           </div>
           
           <div className="space-y-4 mb-6">

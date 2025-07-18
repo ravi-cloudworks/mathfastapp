@@ -443,7 +443,7 @@ export default function TeacherShortsApp() {
   // Initialize app on mount
   useEffect(() => {
     const initializeApp = async () => {
-      console.log('🚀 Initializing Teacher Shorts Creator...')
+      console.log('🚀 Initializing Math Fast APP Creator...')
       
       // Simulate initialization tasks that happen in the background
       await new Promise(resolve => setTimeout(resolve, 1500)) // 1.5 second delay
@@ -649,7 +649,7 @@ export default function TeacherShortsApp() {
               <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Camera className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-slate-900 mb-2">Teacher Shorts</h1>
+              <h1 className="text-2xl font-bold text-slate-900 mb-2">Math Fast APP</h1>
               <p className="text-slate-600">Preparing AI for content creation</p>
             </div>
             
@@ -891,7 +891,7 @@ export default function TeacherShortsApp() {
                 <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Upload className="h-8 w-8 text-white" />
                 </div>
-                <h2 className="text-xl font-semibold mb-2 text-slate-800">Teacher Shorts</h2>
+                <h2 className="text-xl font-semibold mb-2 text-slate-800">Math Fast APP</h2>
                 <p className="text-sm text-slate-600">
                   For best YouTube Shorts results, use portrait images (9:16 ratio)
                 </p>
@@ -975,7 +975,7 @@ export default function TeacherShortsApp() {
           {/* Professional Header with branding - SINGLE TITLE */}
           <div className="flex-shrink-0 py-4 px-4 text-center bg-white shadow-sm relative">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Teacher Shorts
+              Math Fast APP
             </h1>
             {/* Reset button as close icon - in header */}
             <Button

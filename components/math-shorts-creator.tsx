@@ -611,44 +611,40 @@ export default function TeacherShortsApp() {
 
   // Add viewport meta tag for mobile
   useEffect(() => {
-    // More mobile-friendly viewport
+    // Simple, mobile-friendly viewport
     const viewport = document.querySelector('meta[name=viewport]');
     if (viewport) {
-      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, viewport-fit=cover');
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, user-scalable=no');
     } else {
       const meta = document.createElement('meta');
       meta.name = 'viewport';
-      meta.content = 'width=device-width, initial-scale=1.0, viewport-fit=cover';
+      meta.content = 'width=device-width, initial-scale=1.0, user-scalable=no';
       document.getElementsByTagName('head')[0].appendChild(meta);
     }
   
-    // Less aggressive body styling for mobile
-    document.body.style.margin = '0';
-    document.body.style.padding = '0';
-    document.documentElement.style.height = '100%';
-    document.body.style.height = '100%';
+    // Prevent any body scrolling
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
   
     return () => {
-      document.body.style.margin = '';
-      document.body.style.padding = '';
-      document.documentElement.style.height = '';
-      document.body.style.height = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
     };
   }, []);
 
-  useEffect(() => {
-    if (currentImageSrc) {
-      console.log('📱 Mobile Debug:', {
-        currentImageSrc: !!currentImageSrc,
-        currentStep,
-        revealSteps: revealSteps.length,
-        cameraState,
-        imageDimensions,
-        windowSize: { width: window.innerWidth, height: window.innerHeight },
-        userAgent: navigator.userAgent
-      });
-    }
-  }, [currentImageSrc, currentStep, revealSteps.length, cameraState, imageDimensions]);
+  // useEffect(() => {
+  //   if (currentImageSrc) {
+  //     console.log('📱 Mobile Debug:', {
+  //       currentImageSrc: !!currentImageSrc,
+  //       currentStep,
+  //       revealSteps: revealSteps.length,
+  //       cameraState,
+  //       imageDimensions,
+  //       windowSize: { width: window.innerWidth, height: window.innerHeight },
+  //       userAgent: navigator.userAgent
+  //     });
+  //   }
+  // }, [currentImageSrc, currentStep, revealSteps.length, cameraState, imageDimensions]);
 
   // App initialization loader
   if (!isAppInitialized) {
@@ -980,70 +976,68 @@ export default function TeacherShortsApp() {
         </div>
       )}
 
-      {/* Recording Phase (Step 2) - Mobile-optimized fullscreen layout */}
+      {/* Recording Phase (Step 2) - Compact mobile layout NO SCROLL */}
+      {/* Recording Phase (Step 2) - Full-screen mobile layout */}
       {currentImageSrc && (
-        <div className="relative h-screen flex flex-col overflow-hidden bg-slate-50">
-          {/* Professional Header with branding */}
-          <div className="flex-shrink-0 py-3 px-4 text-center bg-white shadow-sm relative">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+        <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
+          {/* Minimal Header - very compact */}
+          <div className="flex-shrink-0 py-1 px-4 text-center bg-white shadow-sm relative" style={{ height: '35px' }}>
+            <h1 className="text-base font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent leading-6">
               Math Fast APP
             </h1>
             <Button
               onClick={handleReset}
               variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 z-50"
+              className="absolute top-0.5 right-2 h-6 w-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 z-50"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3" />
             </Button>
           </div>
 
-          {/* Main content area - MOBILE OPTIMIZED */}
-          <div className="flex-1 flex items-center justify-center p-4" style={{ minHeight: 0 }}>
-            {/* Mobile-friendly card container */}
-            <div className="relative w-full max-w-sm mx-auto">
+          {/* Main content - MAXIMUM space for image */}
+          <div className="flex-1 flex items-center justify-center px-2" style={{ minHeight: 0 }}>
+            <div className="relative w-full h-full max-w-sm mx-auto">
               <div
-                className="relative w-full bg-white rounded-2xl overflow-hidden shadow-xl"
+                className="relative w-full bg-white rounded-lg overflow-hidden shadow-lg"
                 style={{
-                  // Use viewport units that work better on mobile
-                  height: window.innerHeight > 800 ? '70vh' : '60vh',
-                  maxHeight: '600px',
-                  minHeight: '400px'
+                  // Use almost all available space
+                  height: `calc(100vh - 90px)`, // Only 35px header + 55px controls = 90px total
+                  maxWidth: '100%'
                 }}
               >
-                {/* Image with better mobile rendering */}
                 <img
                   src={currentImageSrc}
                   alt="Math problem"
                   className="absolute inset-0 w-full h-full object-contain bg-white"
                   ref={imageRef}
                   style={{
-                    // Force hardware acceleration on mobile
                     transform: 'translateZ(0)',
                     backfaceVisibility: 'hidden'
                   }}
                 />
 
-                {/* Rest of overlays remain the same... */}
+                {/* Processing overlay */}
                 {isProcessingLines && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white z-20">
                     <div className="text-center">
-                      <div className="animate-spin h-8 w-8 border-4 border-white border-t-transparent rounded-full mx-auto mb-3"></div>
-                      <p className="text-sm">Analyzing...</p>
+                      <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full mx-auto mb-2"></div>
+                      <p className="text-xs">Analyzing...</p>
                     </div>
                   </div>
                 )}
 
+                {/* Error overlay */}
                 {error && !isProcessingLines && (
                   <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-white z-20">
-                    <div className="text-center p-4">
-                      <p className="font-semibold mb-3">Processing Failed</p>
+                    <div className="text-center p-3">
+                      <p className="font-semibold mb-2 text-sm">Processing Failed</p>
                       <div className="flex gap-2 justify-center">
                         {retryCount < 3 && (
                           <Button
                             onClick={handleRetry}
                             size="sm"
-                            className="bg-white text-red-900 hover:bg-gray-100"
+                            className="bg-white text-red-900 hover:bg-gray-100 text-xs px-2 py-1"
                           >
                             Retry
                           </Button>
@@ -1052,7 +1046,7 @@ export default function TeacherShortsApp() {
                           onClick={handleReset}
                           variant="outline"
                           size="sm"
-                          className="border-white text-white hover:bg-white hover:text-red-900"
+                          className="border-white text-white hover:bg-white hover:text-red-900 text-xs px-2 py-1"
                         >
                           Start Over
                         </Button>
@@ -1061,7 +1055,7 @@ export default function TeacherShortsApp() {
                   </div>
                 )}
 
-                {/* Reveal overlay - simplified for mobile */}
+                {/* Reveal overlay */}
                 {imageDimensions && (
                   <div className="absolute inset-0 z-10 pointer-events-none">
                     <div
@@ -1079,9 +1073,9 @@ export default function TeacherShortsApp() {
             </div>
           </div>
 
-          {/* Camera overlay - better mobile positioning */}
+          {/* Camera overlay - positioned over the image area */}
           {cameraState === 'ready' && cameraStream && (
-            <div className="absolute top-16 right-4 w-20 h-20 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
+            <div className="absolute top-8 right-3 w-14 h-14 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
               <video
                 ref={visibleVideoRef}
                 autoPlay
@@ -1093,81 +1087,71 @@ export default function TeacherShortsApp() {
                 variant="ghost"
                 size="icon"
                 onClick={stopCamera}
-                className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
+                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
               >
-                <X className="h-3 w-3" />
+                <X className="h-2 w-2" />
               </Button>
             </div>
           )}
 
           {/* Audio-only indicator */}
           {cameraState === 'audio-only' && (
-            <div className="absolute top-16 right-4 w-14 h-14 bg-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
-              <Mic className="h-6 w-6 text-white" />
+            <div className="absolute top-8 right-3 w-10 h-10 bg-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
+              <Mic className="h-3 w-3 text-white" />
             </div>
           )}
 
-          {/* Bottom controls - FIXED POSITIONING for mobile */}
-          <div className="flex-shrink-0 pb-safe-area-inset-bottom bg-white border-t border-slate-200">
-            <div className="p-4">
-              <div className="flex justify-center">
-                <div className="flex items-center space-x-4">
-                  {/* Initial start button */}
-                  {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (
-                    <Button
-                      onClick={handleStartRecording}
-                      size="lg"
-                      className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-6 py-3"
-                    >
-                      <Camera className="mr-2 h-5 w-5" />
-                      Start Recording
-                    </Button>
-                  )}
+          {/* Bottom controls - MINIMAL height */}
+          <div className="flex-shrink-0 bg-white border-t border-slate-200" style={{ height: '55px' }}>
+            <div className="flex items-center justify-center h-full px-4">
+              {/* Initial start button */}
+              {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (
+                <Button
+                  onClick={handleStartRecording}
+                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-3 py-2 text-sm h-10"
+                >
+                  <Camera className="mr-2 h-4 w-4" />
+                  Start Recording
+                </Button>
+              )}
 
-                  {/* Ready to reveal button */}
-                  {(cameraState === 'ready' || cameraState === 'audio-only') && currentStep === 0 && (
-                    <Button
-                      onClick={() => setCurrentStep(1)}
-                      size="lg"
-                      className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-6 py-3"
-                    >
-                      Start Revealing
-                    </Button>
-                  )}
+              {/* Ready to reveal button */}
+              {(cameraState === 'ready' || cameraState === 'audio-only') && currentStep === 0 && (
+                <Button
+                  onClick={() => setCurrentStep(1)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-3 py-2 text-sm h-10"
+                >
+                  Start Revealing
+                </Button>
+              )}
 
-                  {/* Navigation controls during recording - LARGER for mobile */}
-                  {currentStep > 0 && (cameraState === 'ready' || cameraState === 'audio-only') && (
-                    <div className="flex items-center space-x-4">
-                      <Button
-                        onClick={handlePrevStep}
-                        disabled={currentStep <= 1 && currentImageIndex <= 0}
-                        size="lg"
-                        variant="outline"
-                        className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 px-4 py-3"
-                      >
-                        <ArrowLeft className="h-5 w-5" />
-                        <span className="ml-1 hidden sm:inline">Prev</span>
-                      </Button>
+              {/* Navigation controls - VERY COMPACT */}
+              {currentStep > 0 && (cameraState === 'ready' || cameraState === 'audio-only') && (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    onClick={handlePrevStep}
+                    disabled={currentStep <= 1 && currentImageIndex <= 0}
+                    variant="outline"
+                    className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 h-10 w-10 p-0"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
 
-                      {/* Step indicator */}
-                      <div className="px-3 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700">
-                        {currentStep}/{revealSteps.length}
-                      </div>
+                  {/* Very compact step indicator */}
+                  <div className="px-2 py-1 bg-slate-100 rounded text-xs font-medium text-slate-700 min-w-[35px] text-center">
+                    {currentStep}/{revealSteps.length}
+                  </div>
 
-                      <Button
-                        onClick={handleNextStep}
-                        disabled={currentStep >= revealSteps.length && currentImageIndex >= imageList.length - 1}
-                        size="lg"
-                        variant="outline"
-                        className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 px-4 py-3"
-                      >
-                        <span className="mr-1 hidden sm:inline">Next</span>
-                        <ArrowRight className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  )}
+                  <Button
+                    onClick={handleNextStep}
+                    disabled={currentStep >= revealSteps.length && currentImageIndex >= imageList.length - 1}
+                    variant="outline"
+                    className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 h-10 w-10 p-0"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,15 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  reactStrictMode: true,
+  output: 'export',  // Enables static HTML export
   images: {
-    unoptimized: true,
+    unoptimized: true, // Required for static export
   },
-  devIndicators: false,
-}
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || '',
+  assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH || '',  // Add this line
+  trailingSlash: true, // Recommended for GitHub Pages
+  devIndicators:true,
+};
 
-export default nextConfig
+export default nextConfig;

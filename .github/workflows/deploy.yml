@@ -1,0 +1,83 @@
+name: Deploy Next.js to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # Set this to your default branch
+    paths-ignore:
+      - '.github/workflows/**'  # Ignore changes to workflow files
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Get all history for proper versioning
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'  # Using Node.js 22
+          cache: 'npm'        # Enable npm caching
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit --legacy-peer-deps
+        
+      - name: Setup Repository Name for basePath
+        id: repo-name
+        run: echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d '/' -f 2)" >> $GITHUB_ENV
+
+      - name: Build Next.js app
+        run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: /${{ env.REPO_NAME }}
+
+      - name: Create .nojekyll file
+        run: touch out/.nojekyll
+        
+      - name: Debug directory contents
+        run: |
+          echo "Public directory contents:"
+          ls -la public/
+          echo "Build output directory contents:"
+          ls -la out/
+          echo "Checking if public files are in output:"
+          for file in $(find public -type f -not -path "*/\.*"); do
+            relpath=${file#public/}
+            if [ -f "out/$relpath" ]; then
+              echo "✓ $file exists in out as out/$relpath"
+            else
+              echo "✗ $file missing in out directory"
+            fi
+          done
+          
+      # Only uncomment and use this step if debugging shows public files aren't being copied
+      # - name: Manual copy of public files (only if needed)
+      #   run: |
+      #     if [ -d "public" ]; then
+      #       echo "Copying public directory files to output root..."
+      #       cp -rv public/* out/
+      #     fi
+          
+      - name: Deploy to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: out                     # The folder with built files to deploy
+          branch: gh-pages                # The branch to deploy to
+          clean: true                     # Clean out old files
+          clean-exclude: |                # Only preserve specific JSON files
+            maintenance.json
+            announcement.json
+          commit-message: "Deploy website - ${{ github.sha }}"
+
+      - name: Trigger GitHub Pages build
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ github.token }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/pages/builds

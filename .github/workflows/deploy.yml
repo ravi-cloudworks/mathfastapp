@@ -38,7 +38,9 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: /${{ env.REPO_NAME }}
 
       - name: Create .nojekyll file
-        run: touch out/.nojekyll
+        run: |
+          mkdir -p out
+          touch out/.nojekyll
         
       - name: Debug directory contents
         run: |

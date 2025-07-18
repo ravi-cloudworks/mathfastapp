@@ -977,185 +977,185 @@ export default function TeacherShortsApp() {
       )}
 
       {/* Recording Phase (Step 2) - Compact mobile layout NO SCROLL */}
-      {/* Recording Phase (Step 2) - Full-screen mobile layout */}
-      {currentImageSrc && (
-        <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
-          {/* Minimal Header - very compact */}
-          <div className="flex-shrink-0 py-1 px-4 text-center bg-white shadow-sm relative" style={{ height: '35px' }}>
-            <h1 className="text-base font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent leading-6">
-              Math Fast APP
-            </h1>
-            <Button
-              onClick={handleReset}
-              variant="ghost"
-              size="icon"
-              className="absolute top-0.5 right-2 h-6 w-6 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 z-50"
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
+     {/* Recording Phase (Step 2) - Balanced mobile layout */}
+{currentImageSrc && (
+  <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
+    {/* Header - visible but compact */}
+    <div className="flex-shrink-0 py-2 px-4 text-center bg-white shadow-sm relative" style={{ minHeight: '48px' }}>
+      <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+        Math Fast APP
+      </h1>
+      <Button
+        onClick={handleReset}
+        variant="ghost"
+        size="icon"
+        className="absolute top-1 right-2 h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 z-50"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
 
-          {/* Main content - MAXIMUM space for image */}
-          <div className="flex-1 flex items-center justify-center px-2" style={{ minHeight: 0 }}>
-            <div className="relative w-full h-full max-w-sm mx-auto">
-              <div
-                className="relative w-full bg-white rounded-lg overflow-hidden shadow-lg"
-                style={{
-                  // Use almost all available space
-                  height: `calc(100vh - 90px)`, // Only 35px header + 55px controls = 90px total
-                  maxWidth: '100%'
-                }}
-              >
-                <img
-                  src={currentImageSrc}
-                  alt="Math problem"
-                  className="absolute inset-0 w-full h-full object-contain bg-white"
-                  ref={imageRef}
-                  style={{
-                    transform: 'translateZ(0)',
-                    backfaceVisibility: 'hidden'
-                  }}
-                />
-
-                {/* Processing overlay */}
-                {isProcessingLines && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white z-20">
-                    <div className="text-center">
-                      <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full mx-auto mb-2"></div>
-                      <p className="text-xs">Analyzing...</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Error overlay */}
-                {error && !isProcessingLines && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-white z-20">
-                    <div className="text-center p-3">
-                      <p className="font-semibold mb-2 text-sm">Processing Failed</p>
-                      <div className="flex gap-2 justify-center">
-                        {retryCount < 3 && (
-                          <Button
-                            onClick={handleRetry}
-                            size="sm"
-                            className="bg-white text-red-900 hover:bg-gray-100 text-xs px-2 py-1"
-                          >
-                            Retry
-                          </Button>
-                        )}
-                        <Button
-                          onClick={handleReset}
-                          variant="outline"
-                          size="sm"
-                          className="border-white text-white hover:bg-white hover:text-red-900 text-xs px-2 py-1"
-                        >
-                          Start Over
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Reveal overlay */}
-                {imageDimensions && (
-                  <div className="absolute inset-0 z-10 pointer-events-none">
-                    <div
-                      className="absolute bg-white transition-all duration-700 ease-in-out"
-                      style={{
-                        left: 0,
-                        top: `${(getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
-                        width: '100%',
-                        height: `${100 - (getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
-                      }}
-                    />
-                  </div>
-                )}
+    {/* Main content - optimized space for image */}
+    <div className="flex-1 flex items-center justify-center px-3 py-2" style={{ minHeight: 0 }}>
+      <div className="relative w-full max-w-sm mx-auto h-full">
+        <div 
+          className="relative w-full bg-white rounded-xl overflow-hidden shadow-lg h-full"
+          style={{
+            // Use most available space but leave room for elements
+            maxHeight: `calc(100vh - 120px)`, // 48px header + 72px controls
+            minHeight: '400px'
+          }}
+        >
+          <img
+            src={currentImageSrc}
+            alt="Math problem"
+            className="absolute inset-0 w-full h-full object-contain bg-white"
+            ref={imageRef}
+            style={{
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden'
+            }}
+          />
+          
+          {/* Processing overlay */}
+          {isProcessingLines && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white z-20">
+              <div className="text-center">
+                <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full mx-auto mb-2"></div>
+                <p className="text-sm">Analyzing...</p>
               </div>
             </div>
-          </div>
-
-          {/* Camera overlay - positioned over the image area */}
-          {cameraState === 'ready' && cameraStream && (
-            <div className="absolute top-8 right-3 w-14 h-14 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
-              <video
-                ref={visibleVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover transform scale-x-[-1]"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={stopCamera}
-                className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
-              >
-                <X className="h-2 w-2" />
-              </Button>
-            </div>
           )}
-
-          {/* Audio-only indicator */}
-          {cameraState === 'audio-only' && (
-            <div className="absolute top-8 right-3 w-10 h-10 bg-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
-              <Mic className="h-3 w-3 text-white" />
-            </div>
-          )}
-
-          {/* Bottom controls - MINIMAL height */}
-          <div className="flex-shrink-0 bg-white border-t border-slate-200" style={{ height: '55px' }}>
-            <div className="flex items-center justify-center h-full px-4">
-              {/* Initial start button */}
-              {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (
-                <Button
-                  onClick={handleStartRecording}
-                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-3 py-2 text-sm h-10"
-                >
-                  <Camera className="mr-2 h-4 w-4" />
-                  Start Recording
-                </Button>
-              )}
-
-              {/* Ready to reveal button */}
-              {(cameraState === 'ready' || cameraState === 'audio-only') && currentStep === 0 && (
-                <Button
-                  onClick={() => setCurrentStep(1)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-3 py-2 text-sm h-10"
-                >
-                  Start Revealing
-                </Button>
-              )}
-
-              {/* Navigation controls - VERY COMPACT */}
-              {currentStep > 0 && (cameraState === 'ready' || cameraState === 'audio-only') && (
-                <div className="flex items-center space-x-2">
+          
+          {/* Error overlay */}
+          {error && !isProcessingLines && (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-white z-20">
+              <div className="text-center p-4">
+                <p className="font-semibold mb-3 text-sm">Processing Failed</p>
+                <div className="flex gap-2 justify-center">
+                  {retryCount < 3 && (
+                    <Button
+                      onClick={handleRetry}
+                      size="sm"
+                      className="bg-white text-red-900 hover:bg-gray-100 text-xs"
+                    >
+                      Retry
+                    </Button>
+                  )}
                   <Button
-                    onClick={handlePrevStep}
-                    disabled={currentStep <= 1 && currentImageIndex <= 0}
+                    onClick={handleReset}
                     variant="outline"
-                    className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 h-10 w-10 p-0"
+                    size="sm"
+                    className="border-white text-white hover:bg-white hover:text-red-900 text-xs"
                   >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-
-                  {/* Very compact step indicator */}
-                  <div className="px-2 py-1 bg-slate-100 rounded text-xs font-medium text-slate-700 min-w-[35px] text-center">
-                    {currentStep}/{revealSteps.length}
-                  </div>
-
-                  <Button
-                    onClick={handleNextStep}
-                    disabled={currentStep >= revealSteps.length && currentImageIndex >= imageList.length - 1}
-                    variant="outline"
-                    className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 h-10 w-10 p-0"
-                  >
-                    <ArrowRight className="h-4 w-4" />
+                    Start Over
                   </Button>
                 </div>
-              )}
+              </div>
             </div>
-          </div>
+          )}
+          
+          {/* Reveal overlay */}
+          {imageDimensions && (
+            <div className="absolute inset-0 z-10 pointer-events-none">
+              <div
+                className="absolute bg-white transition-all duration-700 ease-in-out"
+                style={{
+                  left: 0,
+                  top: `${(getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
+                  width: '100%',
+                  height: `${100 - (getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
+                }}
+              />
+            </div>
+          )}
         </div>
-      )}
+      </div>
+    </div>
+
+    {/* Camera overlay - positioned to be fully visible */}
+    {cameraState === 'ready' && cameraStream && (
+      <div className="absolute top-14 right-4 w-16 h-16 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
+        <video
+          ref={visibleVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover transform scale-x-[-1]"
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={stopCamera}
+          className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    )}
+
+    {/* Audio-only indicator - positioned to be fully visible */}
+    {cameraState === 'audio-only' && (
+      <div className="absolute top-14 right-4 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
+        <Mic className="h-4 w-4 text-white" />
+      </div>
+    )}
+
+    {/* Bottom controls - adequate space */}
+    <div className="flex-shrink-0 bg-white border-t border-slate-200 py-3" style={{ minHeight: '72px' }}>
+      <div className="flex items-center justify-center h-full px-4">
+        {/* Initial start button */}
+        {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (
+          <Button
+            onClick={handleStartRecording}
+            className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
+          >
+            <Camera className="mr-2 h-4 w-4" />
+            Start Recording
+          </Button>
+        )}
+        
+        {/* Ready to reveal button */}
+        {(cameraState === 'ready' || cameraState === 'audio-only') && currentStep === 0 && (
+          <Button
+            onClick={() => setCurrentStep(1)}
+            className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
+          >
+            Start Revealing
+          </Button>
+        )}
+        
+        {/* Navigation controls */}
+        {currentStep > 0 && (cameraState === 'ready' || cameraState === 'audio-only') && (
+          <div className="flex items-center space-x-3">
+            <Button
+              onClick={handlePrevStep}
+              disabled={currentStep <= 1 && currentImageIndex <= 0}
+              variant="outline"
+              className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 px-3 py-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            
+            {/* Step indicator */}
+            <div className="px-3 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700 min-w-[50px] text-center">
+              {currentStep}/{revealSteps.length}
+            </div>
+            
+            <Button
+              onClick={handleNextStep}
+              disabled={currentStep >= revealSteps.length && currentImageIndex >= imageList.length - 1}
+              variant="outline"
+              className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 px-3 py-2"
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
     </div>
   )
 }

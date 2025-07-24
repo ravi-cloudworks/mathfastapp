@@ -989,7 +989,7 @@ export default function TeacherShortsApp() {
                   <Button
                     onClick={() => {
                       setCurrentImageIndex(0)
-                      setCurrentStep(0)
+                      setCurrentStep(1)
                     }}
                     variant="ghost"
                     size="icon"

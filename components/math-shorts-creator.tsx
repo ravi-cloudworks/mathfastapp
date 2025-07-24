@@ -452,9 +452,20 @@ export default function TeacherShortsApp() {
     } else if (currentImageIndex > 0) {
       const prevIndex = currentImageIndex - 1
       setCurrentImageIndex(prevIndex)
-      setCurrentStep(1) // Go to first step of previous image
+      setCurrentStep(0)
+      setIsProcessingLines(true)
+
+      try {
+        await processImage(imageList[prevIndex])  // ✅ Load reveal steps
+        setCurrentStep(revealSteps.length || 1)   // ✅ Go to last step of previous image
+      } catch (error) {
+        console.error("Error processing previous image:", error)
+        alert("Error processing previous image. Please try again.")
+      }
+
+      setIsProcessingLines(false)
     }
-  }, [currentStep, currentImageIndex, imageList, processImage, detectTextLinesForReveal])
+  }, [currentStep, currentImageIndex, imageList, processImage, revealSteps.length])
 
   const handleReset = useCallback(() => {
     setImageList([])
@@ -987,9 +998,19 @@ export default function TeacherShortsApp() {
               {currentStep > 0 && (
                 <div className="absolute left-4">
                   <Button
-                    onClick={() => {
+                    onClick={async () => {
                       setCurrentImageIndex(0)
-                      setCurrentStep(1)
+                      setCurrentStep(0)
+                      setIsProcessingLines(true)
+
+                      try {
+                        await processImage(imageList[0])  // ✅ Load reveal steps for first image
+                        setCurrentStep(1)                 // ✅ Show first line
+                      } catch (error) {
+                        console.error("Error loading first image:", error)
+                      }
+
+                      setIsProcessingLines(false)
                     }}
                     variant="ghost"
                     size="icon"

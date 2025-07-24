@@ -216,11 +216,13 @@ export default function TeacherShortsApp() {
             })
 
             // Update the image list with resized version
-            setImageList(prev => {
-              const newList = [...prev]
-              newList[currentImageIndex] = resizedDataUrl
-              return newList
-            })
+            if (imageList[currentImageIndex] !== resizedDataUrl) {
+              setImageList(prev => {
+                const newList = [...prev]
+                newList[currentImageIndex] = resizedDataUrl
+                return newList
+              })
+            }
 
             // Run text detection on resized image
             const steps = await detectTextLinesForReveal(resizedImg)
@@ -450,26 +452,7 @@ export default function TeacherShortsApp() {
     } else if (currentImageIndex > 0) {
       const prevIndex = currentImageIndex - 1
       setCurrentImageIndex(prevIndex)
-      setIsProcessingLines(true)
-
-      try {
-        await processImage(imageList[prevIndex])
-        const loadImage = (src: string): Promise<HTMLImageElement> => {
-          return new Promise((resolve, reject) => {
-            const img = new window.Image()
-            img.onload = () => resolve(img)
-            img.onerror = reject
-            img.src = src
-          })
-        }
-        const steps = await detectTextLinesForReveal(await loadImage(imageList[prevIndex]))
-        setCurrentStep(steps.length)
-      } catch (error) {
-        console.error("Error processing previous image:", error)
-        alert("Error processing previous image. Please try again.")
-      }
-
-      setIsProcessingLines(false)
+      setCurrentStep(1) // Go to first step of previous image
     }
   }, [currentStep, currentImageIndex, imageList, processImage, detectTextLinesForReveal])
 
@@ -1004,7 +987,10 @@ export default function TeacherShortsApp() {
               {currentStep > 0 && (
                 <div className="absolute left-4">
                   <Button
-                    onClick={() => setCurrentStep(0)}
+                    onClick={() => {
+                      setCurrentImageIndex(0)
+                      setCurrentStep(0)
+                    }}
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"

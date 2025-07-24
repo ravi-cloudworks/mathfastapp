@@ -46,11 +46,28 @@ export default function TeacherShortsApp() {
   }
 
   const checkBrowserCompatibility = useCallback(() => {
-    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
+    const userAgent = navigator.userAgent
+    const vendor = navigator.vendor || ""
+
+    // More precise detection
+    const isRealSafari = /Safari/.test(userAgent) &&
+      !/Chrome/.test(userAgent) &&
+      /Apple/.test(vendor)
+
+    const isChromeAnyPlatform = /Chrome/.test(userAgent) &&
+      /Google Inc/.test(vendor)
+
+    console.log('🔍 Browser Detection:', {
+      userAgent,
+      vendor,
+      isRealSafari,
+      isChromeAnyPlatform
+    })
 
     return {
-      isSafari,
-      isSupported: !isSafari // Block only Safari, allow everything else including Chrome iOS
+      isRealSafari,
+      isChromeAnyPlatform,
+      isSupported: !isRealSafari // Block only real Safari
     }
   }, [])
 
@@ -749,6 +766,15 @@ export default function TeacherShortsApp() {
         <div className="flex flex-col items-center justify-center h-screen p-4 overflow-hidden">
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
+              {/* TEMPORARY DEBUG - Browser Detection Info */}
+              <div className="mb-4 p-3 bg-gray-100 border rounded-lg text-xs">
+                <p><strong>User Agent:</strong> {navigator.userAgent}</p>
+                <p><strong>Vendor:</strong> {navigator.vendor || 'undefined'}</p>
+                <p><strong>Is Safari:</strong> {(/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)).toString()}</p>
+                <p><strong>Has Chrome:</strong> {/Chrome/.test(navigator.userAgent).toString()}</p>
+                <p><strong>Has Safari:</strong> {/Safari/.test(navigator.userAgent).toString()}</p>
+                <p><strong>Vendor Check:</strong> {/Apple/.test(navigator.vendor || '').toString()}</p>
+              </div>
 
               {/* Browser Compatibility Check */}
               {!browserInfo.isSupported && (

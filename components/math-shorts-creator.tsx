@@ -45,6 +45,21 @@ export default function TeacherShortsApp() {
     return imageList[currentImageIndex] || null
   }
 
+    const checkBrowserCompatibility = useCallback(() => {
+    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)
+    const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
+    const isFirefox = /Firefox/.test(navigator.userAgent)
+    
+    return {
+      isChrome,
+      isSafari,
+      isFirefox,
+      isSupported: isChrome
+    }
+  }, [])
+
+  const [browserInfo] = useState(() => checkBrowserCompatibility())
+
   // Detect text lines to create reveal steps
   const detectTextLinesForReveal = useCallback(async (imageElement: HTMLImageElement) => {
     return new Promise<RevealStep[]>((resolve) => {
@@ -713,7 +728,7 @@ const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
               </Button>
 
               <Button
-                onClick={() => setShowScreenRecordingInstructions(false)}
+                onClick={handleReset}
                 variant="outline"
                 className="w-full py-2"
               >
@@ -725,7 +740,6 @@ const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
       </div>
     )
   }
-
   // Main App UI
   return (
     <div className="min-h-screen bg-slate-50">
@@ -734,18 +748,72 @@ const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       {/* Upload Phase (Step 1) */}
+      {/* Upload Phase (Step 1) */}
       {imageList.length === 0 && (
         <div className="flex flex-col items-center justify-center h-screen p-4 overflow-hidden">
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
+              
+              {/* Browser Compatibility Check */}
+              {!browserInfo.isSupported && (
+                <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                  <h3 className="font-semibold text-orange-900 mb-2">
+                    {browserInfo.isSafari && "Safari Not Supported"}
+                    {browserInfo.isFirefox && "Firefox Not Supported"} 
+                    {!browserInfo.isChrome && !browserInfo.isSafari && !browserInfo.isFirefox && "Browser Not Supported"}
+                  </h3>
+                  <p className="text-sm text-orange-800 mb-3">
+                    This app requires Chrome browser for optimal recording features.
+                  </p>
+                  <Button
+                    onClick={() => window.open('https://chrome.google.com/webstore', '_blank')}
+                    size="sm"
+                    className="bg-orange-600 hover:bg-orange-700 text-white"
+                  >
+                    Download Chrome
+                  </Button>
+                </div>
+              )}
+
               <div className="mb-6">
                 <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Upload className="h-8 w-8 text-white" />
                 </div>
                 <h2 className="text-xl font-semibold mb-2 text-slate-800">Math Fast APP</h2>
-                <p className="text-sm text-slate-600">
-                  For best YouTube Shorts results, use portrait images (9:16 ratio)
+                <p className="text-sm text-slate-600 mb-4">
+                  Create professional math explainer videos in minutes
                 </p>
+                
+                {/* Before vs After Section */}
+                <div className="text-left mb-6 space-y-4">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <h4 className="font-semibold text-red-900 mb-2 flex items-center">
+                      <X className="h-4 w-4 mr-2" />
+                      Before (The Pain)
+                    </h4>
+                    <ul className="text-xs text-red-800 space-y-1">
+                      <li>• Struggle with camera angles while writing</li>
+                      <li>• Record wobbly videos for hours</li>
+                      <li>• Add voice-over separately</li>
+                      <li>• Edit and sync everything manually</li>
+                      <li>• Takes hours to create one video</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <h4 className="font-semibold text-green-900 mb-2 flex items-center">
+                      <Camera className="h-4 w-4 mr-2" />
+                      After (This Tool)
+                    </h4>
+                    <ul className="text-xs text-green-800 space-y-1">
+                      <li>• Take picture snapshots of math problems</li>
+                      <li>• Choose images and start recording</li>
+                      <li>• Click next/prev while explaining</li>
+                      <li>• Stop recording - video ready!</li>
+                      <li>• Publish online in minutes ⚡</li>
+                    </ul>
+                  </div>
+                </div>
               </div>
 
               {error && (
@@ -784,8 +852,8 @@ const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
               />
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isProcessingLines}
-                className="w-full py-3 text-lg bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={isProcessingLines || !browserInfo.isSupported}
+                className="w-full py-3 text-lg bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-400"
               >
                 {isProcessingLines ? (
                   <>
@@ -795,7 +863,7 @@ const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
                 ) : (
                   <>
                     <Upload className="mr-2 h-5 w-5" />
-                    Upload Images
+                    {browserInfo.isSupported ? 'Upload Math Images' : 'Switch to Chrome First'}
                   </>
                 )}
               </Button>

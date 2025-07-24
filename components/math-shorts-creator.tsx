@@ -29,6 +29,11 @@ export default function TeacherShortsApp() {
     isPortrait: boolean
     aspectRatio: number
   } | null>(null)
+  
+  // ADD THESE NEW STATE VARIABLES:
+  const [viewportHeight, setViewportHeight] = useState(0)
+  const [safeAreas, setSafeAreas] = useState({ top: 0, bottom: 0 })
+  
   const videoRef = useRef<HTMLVideoElement>(null)
   const visibleVideoRef = useRef<HTMLVideoElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
@@ -632,6 +637,61 @@ export default function TeacherShortsApp() {
     };
   }, []);
 
+   useEffect(() => {
+    const updateViewport = () => {
+      const vh = window.innerHeight
+      setViewportHeight(vh)
+      
+      // Detect safe areas
+      const testEl = document.createElement('div')
+      testEl.style.position = 'fixed'
+      testEl.style.top = 'env(safe-area-inset-top)'
+      testEl.style.bottom = 'env(safe-area-inset-bottom)'
+      testEl.style.visibility = 'hidden'
+      document.body.appendChild(testEl)
+      
+      const computedStyle = getComputedStyle(testEl)
+      const topSafe = parseInt(computedStyle.top) || 0
+      const bottomSafe = parseInt(computedStyle.bottom) || 0
+      
+      setSafeAreas({ top: topSafe, bottom: bottomSafe })
+      document.body.removeChild(testEl)
+      
+      console.log('📱 Viewport updated:', { vh, topSafe, bottomSafe })
+    }
+    
+    updateViewport()
+    window.addEventListener('resize', updateViewport)
+    window.addEventListener('orientationchange', updateViewport)
+    
+    return () => {
+      window.removeEventListener('resize', updateViewport)
+      window.removeEventListener('orientationchange', updateViewport)
+    }
+  }, [])
+
+  // ADD THIS CSS SAFE AREA SUPPORT useEffect:
+  useEffect(() => {
+    // Add CSS custom properties for safe areas
+    const style = document.createElement('style')
+    style.textContent = `
+      :root {
+        --safe-area-inset-top: env(safe-area-inset-top, 0px);
+        --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      * {
+        -webkit-overflow-scrolling: touch;
+      }
+    `
+    document.head.appendChild(style)
+    
+    return () => {
+      if (document.head.contains(style)) {
+        document.head.removeChild(style)
+      }
+    }
+  }, [])
+
   // useEffect(() => {
   //   if (currentImageSrc) {
   //     console.log('📱 Mobile Debug:', {
@@ -979,9 +1039,19 @@ export default function TeacherShortsApp() {
       {/* Recording Phase (Step 2) - Compact mobile layout NO SCROLL */}
      {/* Recording Phase (Step 2) - Balanced mobile layout */}
 {currentImageSrc && (
-  <div className="h-screen flex flex-col overflow-hidden bg-slate-50">
+  <div 
+    className="flex flex-col overflow-hidden bg-slate-50"
+    style={{ 
+      height: viewportHeight || '100vh',
+      paddingTop: `${safeAreas.top}px`,
+      paddingBottom: `${safeAreas.bottom}px`
+    }}
+  >
     {/* Header - visible but compact */}
-    <div className="flex-shrink-0 py-2 px-4 text-center bg-white shadow-sm relative" style={{ minHeight: '48px' }}>
+    <div 
+      className="flex-shrink-0 py-2 px-4 text-center bg-white shadow-sm relative"
+      style={{ height: `${Math.max(48, 12 + safeAreas.top)}px` }}
+    >
       <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
         Math Fast APP
       </h1>
@@ -996,14 +1066,18 @@ export default function TeacherShortsApp() {
     </div>
 
     {/* Main content - optimized space for image */}
-    <div className="flex-1 flex items-center justify-center px-3 py-2" style={{ minHeight: 0 }}>
+        <div 
+      className="flex items-center justify-center px-3 py-1" 
+      style={{ 
+        height: `${viewportHeight - (Math.max(48, 12 + safeAreas.top)) - (Math.max(72, 20 + safeAreas.bottom))}px` 
+      }}
+    >
       <div className="relative w-full max-w-sm mx-auto h-full">
         <div 
           className="relative w-full bg-white rounded-xl overflow-hidden shadow-lg h-full"
           style={{
-            // Use most available space but leave room for elements
-            maxHeight: `calc(100vh - 120px)`, // 48px header + 72px controls
-            minHeight: '400px'
+            maxHeight: '100%',
+            minHeight: `${Math.min(400, (viewportHeight || 800) * 0.5)}px`
           }}
         >
           <img
@@ -1102,7 +1176,10 @@ export default function TeacherShortsApp() {
     )}
 
     {/* Bottom controls - adequate space */}
-    <div className="flex-shrink-0 bg-white border-t border-slate-200 py-3" style={{ minHeight: '72px' }}>
+    <div 
+      className="flex-shrink-0 bg-white border-t border-slate-200 py-2"
+      style={{ height: `${Math.max(72, 20 + safeAreas.bottom)}px` }}
+    >
       <div className="flex items-center justify-center h-full px-4">
         {/* Initial start button */}
         {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (

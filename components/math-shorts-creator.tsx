@@ -732,7 +732,7 @@ const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
                 variant="outline"
                 className="w-full py-2"
               >
-                Cancel
+                Cancel and Start Over
               </Button>
             </div>
           </CardContent>

@@ -18,7 +18,7 @@ export default function TeacherShortsApp() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [isProcessingLines, setIsProcessingLines] = useState(false)
   const [showScreenRecordingInstructions, setShowScreenRecordingInstructions] = useState(false)
-const [showCamera, setShowCamera] = useState(false)
+  const [showCamera, setShowCamera] = useState(false)
   const [cameraError, setCameraError] = useState<string | null>(null)
   const [isAppInitialized, setIsAppInitialized] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,11 +29,11 @@ const [showCamera, setShowCamera] = useState(false)
     isPortrait: boolean
     aspectRatio: number
   } | null>(null)
-  
+
   // ADD THESE NEW STATE VARIABLES:
   const [viewportHeight, setViewportHeight] = useState(0)
   const [safeAreas, setSafeAreas] = useState({ top: 0, bottom: 0 })
-  
+
   const videoRef = useRef<HTMLVideoElement>(null)
   const visibleVideoRef = useRef<HTMLVideoElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
@@ -314,9 +314,9 @@ const [showCamera, setShowCamera] = useState(false)
     setIsProcessingLines(false)
   }, [processImage])
 
-// REPLACE the complex startCamera, chooseAudioOnly, chooseCameraMode functions
+  // REPLACE the complex startCamera, chooseAudioOnly, chooseCameraMode functions
   // WITH this simple camera toggle:
-  
+
   const toggleCamera = useCallback(async () => {
     if (showCamera && cameraStream) {
       // Turn off camera
@@ -337,12 +337,12 @@ const [showCamera, setShowCamera] = useState(false)
           },
           audio: false // We don't need audio for face cam
         })
-        
+
         setCameraStream(stream)
         setShowCamera(true)
         setCameraError(null)
         console.log('📷 Camera started successfully')
-        
+
         // Attach to video element
         setTimeout(() => {
           if (visibleVideoRef.current) {
@@ -350,7 +350,7 @@ const [showCamera, setShowCamera] = useState(false)
             visibleVideoRef.current.play().catch(console.error)
           }
         }, 100)
-        
+
       } catch (error) {
         console.error('📷 Camera failed:', error)
         setCameraError('Camera access denied. Please allow camera permission.')
@@ -402,14 +402,14 @@ const [showCamera, setShowCamera] = useState(false)
       visibleVideoRef.current.srcObject = cameraStream
       visibleVideoRef.current.play().catch(console.error)
     }
-}, [showCamera, cameraStream])
+  }, [showCamera, cameraStream])
 
   const stopCamera = useCallback(() => {
     if (cameraStream) {
       cameraStream.getTracks().forEach((track) => track.stop())
       setCameraStream(null)
     }
-    
+
   }, [cameraStream])
 
   const handleStartRecording = useCallback(() => {
@@ -420,7 +420,7 @@ const [showCamera, setShowCamera] = useState(false)
 
   const handleReadyToRecord = useCallback(() => {
     setShowScreenRecordingInstructions(false)
-  
+
   }, [])
 
   const handleNextStep = useCallback(async () => {
@@ -479,9 +479,9 @@ const [showCamera, setShowCamera] = useState(false)
     setRevealSteps([])
     setCurrentStep(0)
     setShowScreenRecordingInstructions(false)
-    
+
     setShowCamera(false)
-setCameraError(null)
+    setCameraError(null)
     setError(null) // Clear errors
     setRetryCount(0) // Reset retry count
     stopCamera()
@@ -540,22 +540,22 @@ setCameraError(null)
       meta.content = 'width=device-width, initial-scale=1.0, user-scalable=no';
       document.getElementsByTagName('head')[0].appendChild(meta);
     }
-  
+
     // Prevent any body scrolling
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-  
+
     return () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
   }, []);
 
-   useEffect(() => {
+  useEffect(() => {
     const updateViewport = () => {
       const vh = window.innerHeight
       setViewportHeight(vh)
-      
+
       // Detect safe areas
       const testEl = document.createElement('div')
       testEl.style.position = 'fixed'
@@ -563,21 +563,21 @@ setCameraError(null)
       testEl.style.bottom = 'env(safe-area-inset-bottom)'
       testEl.style.visibility = 'hidden'
       document.body.appendChild(testEl)
-      
+
       const computedStyle = getComputedStyle(testEl)
       const topSafe = parseInt(computedStyle.top) || 0
       const bottomSafe = parseInt(computedStyle.bottom) || 0
-      
+
       setSafeAreas({ top: topSafe, bottom: bottomSafe })
       document.body.removeChild(testEl)
-      
+
       console.log('📱 Viewport updated:', { vh, topSafe, bottomSafe })
     }
-    
+
     updateViewport()
     window.addEventListener('resize', updateViewport)
     window.addEventListener('orientationchange', updateViewport)
-    
+
     return () => {
       window.removeEventListener('resize', updateViewport)
       window.removeEventListener('orientationchange', updateViewport)
@@ -598,7 +598,7 @@ setCameraError(null)
       }
     `
     document.head.appendChild(style)
-    
+
     return () => {
       if (document.head.contains(style)) {
         document.head.removeChild(style)
@@ -813,228 +813,211 @@ setCameraError(null)
       )}
 
       {/* Recording Phase (Step 2) - Compact mobile layout NO SCROLL */}
-     {/* Recording Phase (Step 2) - Balanced mobile layout */}
-{currentImageSrc && (
-  <div 
-    className="flex flex-col overflow-hidden bg-slate-50"
-    style={{ 
-      height: viewportHeight || '100vh',
-      paddingTop: `${safeAreas.top}px`,
-      paddingBottom: `${safeAreas.bottom}px`
-    }}
-  >
-    {/* Header - visible but compact */}
-    <div 
-      className="flex-shrink-0 py-2 px-4 text-center bg-white shadow-sm relative"
-      style={{ height: `${Math.max(48, 12 + safeAreas.top)}px` }}
-    >
-      <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-        Math Fast APP
-      </h1>
-      <Button
-        onClick={handleReset}
-        variant="ghost"
-        size="icon"
-        className="absolute top-1 right-2 h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 z-50"
-      >
-        <X className="h-4 w-4" />
-      </Button>
-    </div>
-
-    {/* Main content - optimized space for image */}
-        <div 
-      className="flex items-center justify-center px-3 py-1" 
-      style={{ 
-        height: `${viewportHeight - (Math.max(48, 12 + safeAreas.top)) - (Math.max(72, 20 + safeAreas.bottom))}px` 
-      }}
-    >
-      <div className="relative w-full max-w-sm mx-auto h-full">
-        <div 
-          className="relative w-full bg-white rounded-xl overflow-hidden shadow-lg h-full"
+      {/* Recording Phase (Step 2) - Balanced mobile layout */}
+      {currentImageSrc && (
+        <div
+          className="flex flex-col overflow-hidden bg-slate-50"
           style={{
-            maxHeight: '100%',
-            minHeight: `${Math.min(400, (viewportHeight || 800) * 0.5)}px`
+            height: viewportHeight || '100vh',
+            paddingTop: `${safeAreas.top}px`,
+            paddingBottom: `${safeAreas.bottom}px`
           }}
         >
-          <img
-            src={currentImageSrc}
-            alt="Math problem"
-            className="absolute inset-0 w-full h-full object-contain bg-white"
-            ref={imageRef}
-            style={{
-              transform: 'translateZ(0)',
-              backfaceVisibility: 'hidden'
-            }}
-          />
-          
-          {/* Processing overlay */}
-          {isProcessingLines && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white z-20">
-              <div className="text-center">
-                <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full mx-auto mb-2"></div>
-                <p className="text-sm">Analyzing...</p>
-              </div>
-            </div>
-          )}
-          
-          {/* Error overlay */}
-          {error && !isProcessingLines && (
-            <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-white z-20">
-              <div className="text-center p-4">
-                <p className="font-semibold mb-3 text-sm">Processing Failed</p>
-                <div className="flex gap-2 justify-center">
-                  {retryCount < 3 && (
-                    <Button
-                      onClick={handleRetry}
-                      size="sm"
-                      className="bg-white text-red-900 hover:bg-gray-100 text-xs"
-                    >
-                      Retry
-                    </Button>
-                  )}
-                  <Button
-                    onClick={handleReset}
-                    variant="outline"
-                    size="sm"
-                    className="border-white text-white hover:bg-white hover:text-red-900 text-xs"
-                  >
-                    Start Over
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          {/* Reveal overlay */}
-          {imageDimensions && (
-            <div className="absolute inset-0 z-10 pointer-events-none">
-              <div
-                className="absolute bg-white transition-all duration-700 ease-in-out"
-                style={{
-                  left: 0,
-                  top: `${(getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
-                  width: '100%',
-                  height: `${100 - (getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-
-    {/* Camera overlay - positioned to be fully visible */}
-    {/* Camera toggle - positioned to be fully visible */}
-    {showCamera && cameraStream && (
-      <div className="absolute top-14 right-4 w-16 h-16 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
-        <video
-          ref={visibleVideoRef}
-          autoPlay
-          playsInline
-          muted
-          className="w-full h-full object-cover transform scale-x-[-1]"
-        />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={toggleCamera}
-          className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
-        >
-          <X className="h-3 w-3" />
-        </Button>
-      </div>
-    )}
-
-    {/* Camera error indicator */}
-    {cameraError && (
-      <div className="absolute top-14 right-4 w-12 h-12 bg-red-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
-        <X className="h-4 w-4 text-white" />
-      </div>
-    )}
-
-    {/* Bottom controls - adequate space */}
-    <div 
-      className="flex-shrink-0 bg-white border-t border-slate-200 py-2"
-      style={{ height: `${Math.max(72, 20 + safeAreas.bottom)}px` }}
-    >
-      <div className="flex items-center justify-center h-full px-4">
-        {/* Initial start button */}
-        {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && (
-          <div className="flex items-center space-x-3">
+          {/* Header - visible but compact */}
+          <div
+            className="flex-shrink-0 py-2 px-4 text-center bg-white shadow-sm relative"
+            style={{ height: `${Math.max(48, 12 + safeAreas.top)}px` }}
+          >
+            <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Math Fast APP
+            </h1>
             <Button
-              onClick={toggleCamera}
-              variant="outline"
-              className={`px-4 py-2 ${showCamera ? 'bg-green-50 border-green-300 text-green-800' : 'bg-slate-50 border-slate-300'}`}
-            >
-              <Camera className="mr-2 h-4 w-4" />
-              {showCamera ? 'Hide Face' : 'Show Face'}
-            </Button>
-            
-            <Button
-              onClick={handleStartRecording}
-              className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
-            >
-              Start Recording
-            </Button>
-          </div>
-        )}
-        
-        {/* Navigation controls - active during explanation */}
-        {currentStep > 0 && (
-          <div className="flex items-center space-x-3">
-            <Button
-              onClick={handlePrevStep}
-              disabled={currentStep <= 1 && currentImageIndex <= 0}
-              variant="outline"
-              className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 px-3 py-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            
-            {/* Step indicator with recording hint */}
-            <div className="px-3 py-2 bg-red-100 border border-red-300 rounded-lg text-sm font-medium text-red-800 min-w-[50px] text-center">
-              {currentStep}/{revealSteps.length}
-            </div>
-            
-            <Button
-              onClick={handleNextStep}
-              disabled={currentStep >= revealSteps.length && currentImageIndex >= imageList.length - 1}
-              variant="outline"
-              className="bg-white hover:bg-slate-50 shadow-lg border-slate-300 px-3 py-2"
-            >
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            
-            {/* Camera toggle during explanation */}
-            <Button
-              onClick={toggleCamera}
+              onClick={handleReset}
               variant="ghost"
               size="icon"
-              className="ml-2 h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200"
+              className="absolute top-1 right-2 h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 z-50"
             >
-              <Camera className={`h-4 w-4 ${showCamera ? 'text-green-600' : 'text-slate-600'}`} />
+              <X className="h-4 w-4" />
             </Button>
           </div>
-        )}
-        
-        {/* Back to start button */}
-        {currentStep > 0 && (
-          <div className="absolute left-4">
-            <Button
-              onClick={() => setCurrentStep(0)}
-              variant="ghost"
-              size="sm"
-              className="text-slate-600"
-            >
-              Back to Start
-            </Button>
-          </div>
-        )}
 
-      </div>
-    </div>
-  </div>
-)}
+          {/* Main content - optimized space for image */}
+          <div
+            className="flex items-center justify-center px-3 py-1"
+            style={{
+              height: `${viewportHeight - (Math.max(48, 12 + safeAreas.top)) - (Math.max(72, 20 + safeAreas.bottom))}px`
+            }}
+          >
+            <div className="relative w-full max-w-sm mx-auto h-full">
+              <div
+                className="relative w-full bg-white rounded-xl overflow-hidden shadow-lg h-full"
+                style={{
+                  maxHeight: '100%',
+                  minHeight: `${Math.min(400, (viewportHeight || 800) * 0.5)}px`
+                }}
+              >
+                <img
+                  src={currentImageSrc}
+                  alt="Math problem"
+                  className="absolute inset-0 w-full h-full object-contain bg-white"
+                  ref={imageRef}
+                  style={{
+                    transform: 'translateZ(0)',
+                    backfaceVisibility: 'hidden'
+                  }}
+                />
+
+                {/* Processing overlay */}
+                {isProcessingLines && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white z-20">
+                    <div className="text-center">
+                      <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full mx-auto mb-2"></div>
+                      <p className="text-sm">Analyzing...</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Error overlay */}
+                {error && !isProcessingLines && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-white z-20">
+                    <div className="text-center p-4">
+                      <p className="font-semibold mb-3 text-sm">Processing Failed</p>
+                      <div className="flex gap-2 justify-center">
+                        {retryCount < 3 && (
+                          <Button
+                            onClick={handleRetry}
+                            size="sm"
+                            className="bg-white text-red-900 hover:bg-gray-100 text-xs"
+                          >
+                            Retry
+                          </Button>
+                        )}
+                        <Button
+                          onClick={handleReset}
+                          variant="outline"
+                          size="sm"
+                          className="border-white text-white hover:bg-white hover:text-red-900 text-xs"
+                        >
+                          Start Over
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Reveal overlay */}
+                {imageDimensions && (
+                  <div className="absolute inset-0 z-10 pointer-events-none">
+                    <div
+                      className="absolute bg-white transition-all duration-700 ease-in-out"
+                      style={{
+                        left: 0,
+                        top: `${(getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
+                        width: '100%',
+                        height: `${100 - (getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Camera overlay - positioned to be fully visible */}
+          {/* Camera toggle - positioned to be fully visible */}
+          {showCamera && cameraStream && (
+            <div className="absolute top-14 right-4 w-16 h-16 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
+              <video
+                ref={visibleVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover transform scale-x-[-1]"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleCamera}
+                className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+
+          {/* Camera error indicator */}
+          {cameraError && (
+            <div className="absolute top-14 right-4 w-12 h-12 bg-red-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
+              <X className="h-4 w-4 text-white" />
+            </div>
+          )}
+
+          {/* Bottom controls - adequate space */}
+          <div
+            className="flex-shrink-0 bg-white border-t border-slate-200 py-2"
+            style={{ height: `${Math.max(72, 20 + safeAreas.bottom)}px` }}
+          >
+            <div className="flex items-center justify-center h-full px-4">
+              {/* Initial start button */}
+              {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && showScreenRecordingInstructions && (
+                <div className="flex items-center space-x-3">
+                  <Button
+                    onClick={toggleCamera}
+                    variant="outline"
+                    className={`px-4 py-2 ${showCamera ? 'bg-green-50 border-green-300 text-green-800' : 'bg-slate-50 border-slate-300'}`}
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    {showCamera ? 'Hide Face' : 'Show Face'}
+                  </Button>
+
+                  <Button
+                    onClick={handleStartRecording}
+                    className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
+                  >
+                    Start Recording
+                  </Button>
+                </div>
+              )}
+
+              {/* Navigation controls - active during explanation */}
+              {!showScreenRecordingInstructions && (
+                <div className="flex items-center space-x-3">
+                  <Button onClick={handlePrevStep} variant="outline" size="icon">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+
+                  <div className="px-2 py-1 bg-red-100 rounded text-xs">
+                    {currentStep}/{revealSteps.length}
+                  </div>
+
+                  <Button onClick={handleNextStep} variant="outline" size="icon">
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+
+                  <Button onClick={toggleCamera} variant="ghost" size="icon">
+                    <Camera className={`h-4 w-4 ${showCamera ? 'text-green-600' : 'text-slate-600'}`} />
+                  </Button>
+                </div>
+              )}
+
+              {/* Back to start button */}
+              {currentStep > 0 && (
+                <div className="absolute left-4">
+                  <Button
+                    onClick={() => setCurrentStep(0)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-slate-600"
+                  >
+                    Back to Start
+                  </Button>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

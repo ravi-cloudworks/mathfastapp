@@ -970,12 +970,12 @@ export default function TeacherShortsApp() {
                     {showCamera ? 'Hide Face' : 'Show Face'}
                   </Button>
 
-                  <Button
+                  {/* <Button
                     onClick={handleStartRecording}
                     className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
                   >
                     Start Recording
-                  </Button>
+                  </Button> */}
                 </div>
               )}
 

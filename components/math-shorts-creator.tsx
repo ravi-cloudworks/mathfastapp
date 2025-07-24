@@ -1006,10 +1006,10 @@ export default function TeacherShortsApp() {
                   <Button
                     onClick={() => setCurrentStep(0)}
                     variant="ghost"
-                    size="sm"
-                    className="text-slate-600"
+                    size="icon"
+                    className="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600"
                   >
-                    Back to Start
+                    <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </div>
               )}

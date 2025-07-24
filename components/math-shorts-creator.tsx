@@ -184,6 +184,18 @@ export default function TeacherShortsApp() {
     })
   }, [])
 
+  const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
+    return new Promise<RevealStep[]>((resolve) => {
+      const img = new window.Image()
+      img.onload = async () => {
+        const steps = await detectTextLinesForReveal(img)
+        resolve(steps)
+      }
+      img.onerror = () => resolve([])
+      img.src = imageSrc
+    })
+  }, [detectTextLinesForReveal])
+
   const processImage = useCallback(async (dataUrl: string) => {
     return new Promise<void>((resolve, reject) => {
       const img = new window.Image()
@@ -216,13 +228,13 @@ export default function TeacherShortsApp() {
             })
 
             // Update the image list with resized version
-            if (imageList[currentImageIndex] !== resizedDataUrl) {
-              setImageList(prev => {
-                const newList = [...prev]
-                newList[currentImageIndex] = resizedDataUrl
-                return newList
-              })
-            }
+            // if (imageList[currentImageIndex] !== resizedDataUrl) {
+            //   setImageList(prev => {
+            //     const newList = [...prev]
+            //     newList[currentImageIndex] = resizedDataUrl
+            //     return newList
+            //   })
+            // }
 
             // Run text detection on resized image
             const steps = await detectTextLinesForReveal(resizedImg)
@@ -452,20 +464,13 @@ export default function TeacherShortsApp() {
     } else if (currentImageIndex > 0) {
       const prevIndex = currentImageIndex - 1
       setCurrentImageIndex(prevIndex)
-      setCurrentStep(0)
-      setIsProcessingLines(true)
 
-      try {
-        await processImage(imageList[prevIndex])  // ✅ Load reveal steps
-        setCurrentStep(revealSteps.length || 1)   // ✅ Go to last step of previous image
-      } catch (error) {
-        console.error("Error processing previous image:", error)
-        alert("Error processing previous image. Please try again.")
-      }
-
-      setIsProcessingLines(false)
+      // Get steps for previous image without modifying arrays
+      const steps = await getRevealStepsForImage(imageList[prevIndex])
+      setRevealSteps(steps)
+      setCurrentStep(steps.length || 1) // Go to last step of previous image
     }
-  }, [currentStep, currentImageIndex, imageList, processImage, revealSteps.length])
+  }, [currentStep, currentImageIndex, imageList, getRevealStepsForImage])
 
   const handleReset = useCallback(() => {
     setImageList([])
@@ -1000,17 +1005,9 @@ export default function TeacherShortsApp() {
                   <Button
                     onClick={async () => {
                       setCurrentImageIndex(0)
-                      setCurrentStep(0)
-                      setIsProcessingLines(true)
-
-                      try {
-                        await processImage(imageList[0])  // ✅ Load reveal steps for first image
-                        setCurrentStep(1)                 // ✅ Show first line
-                      } catch (error) {
-                        console.error("Error loading first image:", error)
-                      }
-
-                      setIsProcessingLines(false)
+                      const steps = await getRevealStepsForImage(imageList[0])
+                      setRevealSteps(steps)
+                      setCurrentStep(1) // First step of first image
                     }}
                     variant="ghost"
                     size="icon"

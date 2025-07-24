@@ -45,16 +45,12 @@ export default function TeacherShortsApp() {
     return imageList[currentImageIndex] || null
   }
 
-    const checkBrowserCompatibility = useCallback(() => {
-    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)
+  const checkBrowserCompatibility = useCallback(() => {
     const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent)
-    const isFirefox = /Firefox/.test(navigator.userAgent)
-    
+
     return {
-      isChrome,
       isSafari,
-      isFirefox,
-      isSupported: isChrome
+      isSupported: !isSafari // Block only Safari, allow everything else including Chrome iOS
     }
   }, [])
 
@@ -199,26 +195,26 @@ export default function TeacherShortsApp() {
     })
   }, [])
 
-const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
-  return new Promise<RevealStep[]>((resolve) => {
-    const img = new window.Image()
-    img.onload = async () => {
-      // RESIZE FIRST - same as initial processing
-      const resizedDataUrl = await resizeImageTo9x16(img)
-      
-      // Then detect lines on RESIZED image
-      const resizedImg = new window.Image()
-      resizedImg.onload = async () => {
-        const steps = await detectTextLinesForReveal(resizedImg)
-        resolve(steps)
+  const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
+    return new Promise<RevealStep[]>((resolve) => {
+      const img = new window.Image()
+      img.onload = async () => {
+        // RESIZE FIRST - same as initial processing
+        const resizedDataUrl = await resizeImageTo9x16(img)
+
+        // Then detect lines on RESIZED image
+        const resizedImg = new window.Image()
+        resizedImg.onload = async () => {
+          const steps = await detectTextLinesForReveal(resizedImg)
+          resolve(steps)
+        }
+        resizedImg.onerror = () => resolve([])
+        resizedImg.src = resizedDataUrl
       }
-      resizedImg.onerror = () => resolve([])
-      resizedImg.src = resizedDataUrl
-    }
-    img.onerror = () => resolve([])
-    img.src = imageSrc
-  })
-}, [detectTextLinesForReveal, resizeImageTo9x16])
+      img.onerror = () => resolve([])
+      img.src = imageSrc
+    })
+  }, [detectTextLinesForReveal, resizeImageTo9x16])
 
   const processImage = useCallback(async (dataUrl: string) => {
     return new Promise<void>((resolve, reject) => {
@@ -753,17 +749,15 @@ const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
         <div className="flex flex-col items-center justify-center h-screen p-4 overflow-hidden">
           <Card className="w-full max-w-md">
             <CardContent className="p-6 text-center">
-              
+
               {/* Browser Compatibility Check */}
               {!browserInfo.isSupported && (
                 <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
                   <h3 className="font-semibold text-orange-900 mb-2">
-                    {browserInfo.isSafari && "Safari Not Supported"}
-                    {browserInfo.isFirefox && "Firefox Not Supported"} 
-                    {!browserInfo.isChrome && !browserInfo.isSafari && !browserInfo.isFirefox && "Browser Not Supported"}
+                    Safari Not Supported
                   </h3>
                   <p className="text-sm text-orange-800 mb-3">
-                    This app requires Chrome browser for optimal recording features.
+                    Please use Chrome browser for the best experience with this app.
                   </p>
                   <Button
                     onClick={() => window.open('https://chrome.google.com/webstore', '_blank')}
@@ -783,7 +777,7 @@ const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
                 <p className="text-sm text-slate-600 mb-4">
                   Create professional math explainer videos in minutes
                 </p>
-                
+
                 {/* Before vs After Section */}
                 <div className="text-left mb-6 space-y-4">
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3">
@@ -799,7 +793,7 @@ const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
                       <li>• Takes hours to create one video</li>
                     </ul>
                   </div>
-                  
+
                   <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                     <h4 className="font-semibold text-green-900 mb-2 flex items-center">
                       <Camera className="h-4 w-4 mr-2" />

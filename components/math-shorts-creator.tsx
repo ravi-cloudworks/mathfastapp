@@ -18,8 +18,8 @@ export default function TeacherShortsApp() {
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
   const [isProcessingLines, setIsProcessingLines] = useState(false)
   const [showScreenRecordingInstructions, setShowScreenRecordingInstructions] = useState(false)
-  const [cameraState, setCameraState] = useState<'none' | 'requesting' | 'loading' | 'ready' | 'denied' | 'audio-only'>('none')
-  const [showCameraOptions, setShowCameraOptions] = useState(false)
+const [showCamera, setShowCamera] = useState(false)
+  const [cameraError, setCameraError] = useState<string | null>(null)
   const [isAppInitialized, setIsAppInitialized] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [retryCount, setRetryCount] = useState(0)
@@ -314,137 +314,50 @@ export default function TeacherShortsApp() {
     setIsProcessingLines(false)
   }, [processImage])
 
-  const startCamera = useCallback(async () => {
-    console.log('🎥 Starting camera process...')
-    setCameraState('loading') // Set to loading first to render video element
-
-    try {
-      // Check if mediaDevices is available
-      if (!navigator.mediaDevices) {
-        console.error('🎥 navigator.mediaDevices not available')
-        throw new Error('Camera not supported on this device/browser')
-      }
-
-      // Check if getUserMedia is available
-      if (!navigator.mediaDevices.getUserMedia) {
-        console.error('🎥 getUserMedia not available')
-        throw new Error('Camera access not supported on this device/browser')
-      }
-
-      // Check if we're on HTTPS (required for mobile)
-      const isSecure = location.protocol === 'https:' || location.hostname === 'localhost'
-      if (!isSecure) {
-        console.error('🎥 Not on HTTPS - camera may not work on mobile')
-      }
-
-      console.log('🎥 Requesting camera access...')
-      console.log('🎥 Protocol:', location.protocol)
-      console.log('🎥 Hostname:', location.hostname)
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user', // Front camera
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        },
-        audio: false
-      })
-      console.log('🎥 Camera access granted, stream received:', stream)
-
-      setCameraStream(stream)
-
-      // Wait a bit for video element to be available
-      setTimeout(() => {
-        if (videoRef.current) {
-          console.log('🎥 Video element found, setting up...')
-          videoRef.current.srcObject = stream
-
-          // Set up multiple ways to detect when camera is ready
-          const markAsReady = () => {
-            console.log('🎥 Camera marked as ready!')
-            setCameraState('ready')
-            // Note: Stream will be attached to visible video via useEffect
-          }
-
-          // Primary: onloadedmetadata event
-          videoRef.current.onloadedmetadata = () => {
-            console.log('🎥 onloadedmetadata fired')
-            markAsReady()
-          }
-
-          // Fallback: oncanplay event
-          videoRef.current.oncanplay = () => {
-            console.log('🎥 oncanplay fired')
-            markAsReady()
-          }
-
-          // Additional events for debugging
-          videoRef.current.onloadstart = () => console.log('🎥 onloadstart fired')
-          videoRef.current.onloadeddata = () => console.log('🎥 onloadeddata fired')
-          videoRef.current.oncanplaythrough = () => console.log('🎥 oncanplaythrough fired')
-          videoRef.current.onplaying = () => console.log('🎥 onplaying fired')
-          videoRef.current.onerror = (e) => console.error('🎥 Video error:', e)
-
-          // Final fallback: timeout after 3 seconds
-          const timeoutId = setTimeout(() => {
-            console.log('🎥 Camera ready via timeout fallback (3s)')
-            markAsReady()
-          }, 3000)
-
-          // Clear timeout if camera loads normally
-          videoRef.current.addEventListener('loadedmetadata', () => {
-            console.log('🎥 Clearing timeout - metadata loaded')
-            clearTimeout(timeoutId)
-          }, { once: true })
-
-          console.log('🎥 Calling video.play()...')
-          const playPromise = videoRef.current.play()
-
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                console.log('🎥 Video play() succeeded')
-              })
-              .catch((error) => {
-                console.error('🎥 Video play() failed:', error)
-              })
-          }
-
-          console.log('🎥 Video setup complete, waiting for events...')
-        } else {
-          console.error('🎥 Video element still not found!')
-          setCameraState('denied')
-        }
-      }, 200) // Wait 200ms for render
-
-    } catch (err) {
-      console.error("🎥 Error accessing camera:", err)
-
-      // Type-safe error handling
-      if (err instanceof Error) {
-        console.error("🎥 Error details:", {
-          name: err.name,
-          message: err.message,
-          code: (err as any).code || 'unknown'
+// REPLACE the complex startCamera, chooseAudioOnly, chooseCameraMode functions
+  // WITH this simple camera toggle:
+  
+  const toggleCamera = useCallback(async () => {
+    if (showCamera && cameraStream) {
+      // Turn off camera
+      cameraStream.getTracks().forEach((track) => track.stop())
+      setCameraStream(null)
+      setShowCamera(false)
+      setCameraError(null)
+      console.log('📷 Camera turned off')
+    } else {
+      // Turn on camera
+      try {
+        console.log('📷 Starting camera...')
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: false // We don't need audio for face cam
         })
-      } else {
-        console.error("🎥 Unknown error type:", err)
+        
+        setCameraStream(stream)
+        setShowCamera(true)
+        setCameraError(null)
+        console.log('📷 Camera started successfully')
+        
+        // Attach to video element
+        setTimeout(() => {
+          if (visibleVideoRef.current) {
+            visibleVideoRef.current.srcObject = stream
+            visibleVideoRef.current.play().catch(console.error)
+          }
+        }, 100)
+        
+      } catch (error) {
+        console.error('📷 Camera failed:', error)
+        setCameraError('Camera access denied. Please allow camera permission.')
+        setShowCamera(false)
       }
-
-      setCameraState('denied')
     }
-  }, [])
-
-  const chooseAudioOnly = useCallback(() => {
-    setCameraState('audio-only')
-    setShowCameraOptions(false)
-  }, [])
-
-  const chooseCameraMode = useCallback(() => {
-    setShowCameraOptions(false)
-    startCamera() // Directly call startCamera
-  }, [startCamera])
-
+  }, [showCamera, cameraStream])
   // Initialize app on mount
   useEffect(() => {
     const initializeApp = async () => {
@@ -484,19 +397,19 @@ export default function TeacherShortsApp() {
 
   useEffect(() => {
     // When camera becomes ready, attach stream to visible video element
-    if (cameraState === 'ready' && cameraStream && visibleVideoRef.current) {
+    if (showCamera && cameraStream && visibleVideoRef.current) {
       console.log('🎥 Attaching stream to visible video element')
       visibleVideoRef.current.srcObject = cameraStream
       visibleVideoRef.current.play().catch(console.error)
     }
-  }, [cameraState, cameraStream])
+}, [showCamera, cameraStream])
 
   const stopCamera = useCallback(() => {
     if (cameraStream) {
       cameraStream.getTracks().forEach((track) => track.stop())
       setCameraStream(null)
     }
-    setCameraState('none')
+    
   }, [cameraStream])
 
   const handleStartRecording = useCallback(() => {
@@ -507,7 +420,7 @@ export default function TeacherShortsApp() {
 
   const handleReadyToRecord = useCallback(() => {
     setShowScreenRecordingInstructions(false)
-    setShowCameraOptions(true)
+  
   }, [])
 
   const handleNextStep = useCallback(async () => {
@@ -566,8 +479,9 @@ export default function TeacherShortsApp() {
     setRevealSteps([])
     setCurrentStep(0)
     setShowScreenRecordingInstructions(false)
-    setCameraState('none')
-    setShowCameraOptions(false)
+    
+    setShowCamera(false)
+setCameraError(null)
     setError(null) // Clear errors
     setRetryCount(0) // Reset retry count
     stopCamera()
@@ -748,165 +662,27 @@ export default function TeacherShortsApp() {
     )
   }
 
-  // Camera Options Modal
-  if (showCameraOptions) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-4 overflow-hidden">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6">
-            <h2 className="text-xl font-bold text-center mb-6 text-slate-900">Choose Recording Mode</h2>
-
-            <div className="space-y-4 mb-6">
-              <Button
-                onClick={chooseCameraMode}
-                className="w-full py-4 text-lg bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center justify-center space-x-3"
-              >
-                <Camera className="h-6 w-6" />
-                <span>Camera + Voice</span>
-              </Button>
-
-              <Button
-                onClick={chooseAudioOnly}
-                variant="outline"
-                className="w-full py-4 text-lg border-2 border-slate-300 hover:bg-slate-50 rounded-lg flex items-center justify-center space-x-3"
-              >
-                <Mic className="h-6 w-6" />
-                <span>Voice Only</span>
-              </Button>
-            </div>
-
-            <p className="text-sm text-slate-600 text-center">
-              Choose camera + voice to show your face, or voice only for audio explanation
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  // Camera Loading States
-  if (cameraState === 'requesting') {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-4 overflow-hidden">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-bold mb-4 text-slate-900">Requesting Camera Access</h2>
-            <div className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-slate-600">Please allow camera access when prompted</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (cameraState === 'loading') {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-4 overflow-hidden">
-        {/* Hidden video element for camera setup */}
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{ display: 'none' }}
-        />
-
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-bold mb-4 text-slate-900">Starting Camera</h2>
-            <div className="animate-pulse h-8 w-8 bg-purple-600 rounded-full mx-auto mb-4"></div>
-            <p className="text-slate-600 mb-4">Camera is starting up...</p>
-
-            <Button
-              onClick={() => {
-                console.log('🎥 Emergency skip - forcing ready state')
-                setCameraState('ready')
-              }}
-              variant="outline"
-              className="mt-4 text-sm"
-            >
-              Skip (if stuck)
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (cameraState === 'denied') {
-    const isSecure = typeof window !== 'undefined' && (location.protocol === 'https:' || location.hostname === 'localhost')
-    const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-
-    return (
-      <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-4 overflow-hidden">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-bold mb-4 text-slate-900">Camera Access Issue</h2>
-
-            {!isSecure && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-800">
-                  <strong>Security Issue:</strong> Camera requires HTTPS on mobile devices.
-                  This site is using HTTP which blocks camera access.
-                </p>
-              </div>
-            )}
-
-            {isMobile && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Mobile Tips:</strong><br />
-                  • Make sure camera permission is enabled<br />
-                  • Try refreshing the page<br />
-                  • Check if other apps are using the camera<br />
-                  {!isSecure && '• Use HTTPS version of this site'}
-                </p>
-              </div>
-            )}
-
-            <p className="text-slate-600 mb-6">You can still record with voice only</p>
-            <div className="space-y-3">
-              <Button
-                onClick={chooseAudioOnly}
-                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Mic className="mr-2 h-5 w-5" />
-                Continue with Voice Only
-              </Button>
-              <Button
-                onClick={() => setShowCameraOptions(true)}
-                variant="outline"
-                className="w-full py-2"
-              >
-                Try Camera Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
 
   if (showScreenRecordingInstructions) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6">
-            <h2 className="text-xl font-bold text-center mb-6 text-slate-900">Ready to Record!</h2>
+            <h2 className="text-xl font-bold text-center mb-6 text-slate-900">Ready to Create Explainer Video!</h2>
 
             <div className="space-y-4 mb-6">
               <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
                 <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">1</div>
                 <div>
-                  <p className="font-medium text-blue-900">Start Screen Recording</p>
-                  <p className="text-sm text-blue-700">Open Control Center → Screen Recording</p>
+                  <p className="font-medium text-blue-900">Start Android Screen Recording</p>
+                  <p className="text-sm text-blue-700">Swipe down → Screen Record (or use Control Panel)</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
                 <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold">2</div>
                 <div>
-                  <p className="font-medium text-green-900">Come Back to This App</p>
+                  <p className="font-medium text-green-900">Return to This App</p>
                   <p className="text-sm text-green-700">Switch back when recording starts</p>
                 </div>
               </div>
@@ -914,18 +690,18 @@ export default function TeacherShortsApp() {
               <div className="flex items-center space-x-3 p-3 bg-purple-50 rounded-lg">
                 <div className="w-8 h-8 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold">3</div>
                 <div>
-                  <p className="font-medium text-purple-900">Click "I'm Ready"</p>
-                  <p className="text-sm text-slate-600">Start revealing your math problem</p>
+                  <p className="font-medium text-purple-900">Start Explaining</p>
+                  <p className="text-sm text-slate-600">Use arrows to reveal steps while talking</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-3">
               <Button
-                onClick={handleReadyToRecord}
+                onClick={() => setShowScreenRecordingInstructions(false)}
                 className="w-full py-3 text-lg bg-purple-600 hover:bg-purple-700 text-white"
               >
-                I'm Ready - Start Revealing!
+                I'm Ready - Let's Go!
               </Button>
 
               <Button
@@ -1148,7 +924,8 @@ export default function TeacherShortsApp() {
     </div>
 
     {/* Camera overlay - positioned to be fully visible */}
-    {cameraState === 'ready' && cameraStream && (
+    {/* Camera toggle - positioned to be fully visible */}
+    {showCamera && cameraStream && (
       <div className="absolute top-14 right-4 w-16 h-16 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
         <video
           ref={visibleVideoRef}
@@ -1160,7 +937,7 @@ export default function TeacherShortsApp() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={stopCamera}
+          onClick={toggleCamera}
           className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
         >
           <X className="h-3 w-3" />
@@ -1168,10 +945,10 @@ export default function TeacherShortsApp() {
       </div>
     )}
 
-    {/* Audio-only indicator - positioned to be fully visible */}
-    {cameraState === 'audio-only' && (
-      <div className="absolute top-14 right-4 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
-        <Mic className="h-4 w-4 text-white" />
+    {/* Camera error indicator */}
+    {cameraError && (
+      <div className="absolute top-14 right-4 w-12 h-12 bg-red-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
+        <X className="h-4 w-4 text-white" />
       </div>
     )}
 
@@ -1182,28 +959,28 @@ export default function TeacherShortsApp() {
     >
       <div className="flex items-center justify-center h-full px-4">
         {/* Initial start button */}
-        {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (
-          <Button
-            onClick={handleStartRecording}
-            className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
-          >
-            <Camera className="mr-2 h-4 w-4" />
-            Start Recording
-          </Button>
+        {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && (
+          <div className="flex items-center space-x-3">
+            <Button
+              onClick={toggleCamera}
+              variant="outline"
+              className={`px-4 py-2 ${showCamera ? 'bg-green-50 border-green-300 text-green-800' : 'bg-slate-50 border-slate-300'}`}
+            >
+              <Camera className="mr-2 h-4 w-4" />
+              {showCamera ? 'Hide Face' : 'Show Face'}
+            </Button>
+            
+            <Button
+              onClick={handleStartRecording}
+              className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
+            >
+              Start Recording
+            </Button>
+          </div>
         )}
         
-        {/* Ready to reveal button */}
-        {(cameraState === 'ready' || cameraState === 'audio-only') && currentStep === 0 && (
-          <Button
-            onClick={() => setCurrentStep(1)}
-            className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
-          >
-            Start Revealing
-          </Button>
-        )}
-        
-        {/* Navigation controls */}
-        {currentStep > 0 && (cameraState === 'ready' || cameraState === 'audio-only') && (
+        {/* Navigation controls - active during explanation */}
+        {currentStep > 0 && (
           <div className="flex items-center space-x-3">
             <Button
               onClick={handlePrevStep}
@@ -1214,8 +991,8 @@ export default function TeacherShortsApp() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             
-            {/* Step indicator */}
-            <div className="px-3 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700 min-w-[50px] text-center">
+            {/* Step indicator with recording hint */}
+            <div className="px-3 py-2 bg-red-100 border border-red-300 rounded-lg text-sm font-medium text-red-800 min-w-[50px] text-center">
               {currentStep}/{revealSteps.length}
             </div>
             
@@ -1227,8 +1004,33 @@ export default function TeacherShortsApp() {
             >
               <ArrowRight className="h-4 w-4" />
             </Button>
+            
+            {/* Camera toggle during explanation */}
+            <Button
+              onClick={toggleCamera}
+              variant="ghost"
+              size="icon"
+              className="ml-2 h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200"
+            >
+              <Camera className={`h-4 w-4 ${showCamera ? 'text-green-600' : 'text-slate-600'}`} />
+            </Button>
           </div>
         )}
+        
+        {/* Back to start button */}
+        {currentStep > 0 && (
+          <div className="absolute left-4">
+            <Button
+              onClick={() => setCurrentStep(0)}
+              variant="ghost"
+              size="sm"
+              className="text-slate-600"
+            >
+              Back to Start
+            </Button>
+          </div>
+        )}
+
       </div>
     </div>
   </div>

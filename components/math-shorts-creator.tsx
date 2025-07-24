@@ -184,17 +184,26 @@ export default function TeacherShortsApp() {
     })
   }, [])
 
-  const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
-    return new Promise<RevealStep[]>((resolve) => {
-      const img = new window.Image()
-      img.onload = async () => {
-        const steps = await detectTextLinesForReveal(img)
+const getRevealStepsForImage = useCallback(async (imageSrc: string) => {
+  return new Promise<RevealStep[]>((resolve) => {
+    const img = new window.Image()
+    img.onload = async () => {
+      // RESIZE FIRST - same as initial processing
+      const resizedDataUrl = await resizeImageTo9x16(img)
+      
+      // Then detect lines on RESIZED image
+      const resizedImg = new window.Image()
+      resizedImg.onload = async () => {
+        const steps = await detectTextLinesForReveal(resizedImg)
         resolve(steps)
       }
-      img.onerror = () => resolve([])
-      img.src = imageSrc
-    })
-  }, [detectTextLinesForReveal])
+      resizedImg.onerror = () => resolve([])
+      resizedImg.src = resizedDataUrl
+    }
+    img.onerror = () => resolve([])
+    img.src = imageSrc
+  })
+}, [detectTextLinesForReveal, resizeImageTo9x16])
 
   const processImage = useCallback(async (dataUrl: string) => {
     return new Promise<void>((resolve, reject) => {

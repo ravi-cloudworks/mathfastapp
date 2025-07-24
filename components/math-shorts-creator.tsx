@@ -578,8 +578,8 @@ export default function TeacherShortsApp() {
     }
 
     // Prevent any body scrolling
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
+    // document.body.style.overflow = 'hidden';
+    // document.documentElement.style.overflow = 'hidden';
 
     return () => {
       document.body.style.overflow = '';

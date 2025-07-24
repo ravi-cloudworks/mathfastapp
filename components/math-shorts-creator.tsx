@@ -29,24 +29,16 @@ export default function TeacherShortsApp() {
     isPortrait: boolean
     aspectRatio: number
   } | null>(null)
-
+  
   // ADD THESE NEW STATE VARIABLES:
   const [viewportHeight, setViewportHeight] = useState(0)
   const [safeAreas, setSafeAreas] = useState({ top: 0, bottom: 0 })
-
-  const [isRecording, setIsRecording] = useState(false)
-  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null)
-  const [showPlayback, setShowPlayback] = useState(false)
-
+  
   const videoRef = useRef<HTMLVideoElement>(null)
   const visibleVideoRef = useRef<HTMLVideoElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const recordedChunksRef = useRef<Blob[]>([])
-  const screenStreamRef = useRef<MediaStream | null>(null)
 
   // Get current image source
   const getCurrentImageSrc = () => {
@@ -448,199 +440,6 @@ export default function TeacherShortsApp() {
     setShowCameraOptions(false)
   }, [])
 
-  // ADD THESE RECORDING FUNCTIONS (after line 250, after chooseAudioOnly function):
-
-  const startScreenRecording = useCallback(async () => {
-    try {
-      console.log('🎬 Starting screen recording...')
-      setIsRecording(true)
-      recordedChunksRef.current = []
-
-      // Get screen capture
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          width: { ideal: 720 },
-          height: { ideal: 1280 },
-          frameRate: { ideal: 30 }
-        },
-        audio: false // We'll use microphone audio instead
-      })
-
-      screenStreamRef.current = screenStream
-      console.log('✅ Screen capture started')
-
-      // Get microphone audio (from existing camera stream or new audio stream)
-      let audioStream: MediaStream | null = null
-
-      if (cameraStream) {
-        // Use existing camera microphone
-        const audioTracks = cameraStream.getAudioTracks()
-        if (audioTracks.length > 0) {
-          audioStream = new MediaStream(audioTracks)
-          console.log('✅ Using existing camera microphone')
-        }
-      }
-
-      if (!audioStream) {
-        // Get new microphone access
-        audioStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: false
-        })
-        console.log('✅ New microphone access granted')
-      }
-
-      // Combine screen video + microphone audio
-      const combinedStream = new MediaStream([
-        ...screenStream.getVideoTracks(),
-        ...audioStream.getAudioTracks()
-      ])
-
-      // Create MediaRecorder
-      const mediaRecorder = new MediaRecorder(combinedStream, {
-        mimeType: 'video/webm;codecs=vp9'
-      })
-
-      mediaRecorderRef.current = mediaRecorder
-
-      // Handle recorded data
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunksRef.current.push(event.data)
-          console.log('📦 Recording chunk received:', event.data.size, 'bytes')
-        }
-      }
-
-      // Handle recording stop
-      mediaRecorder.onstop = () => {
-        console.log('🛑 Recording stopped, creating WebM blob...')
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' })
-        setRecordedBlob(blob)
-        setIsRecording(false)
-        setShowPlayback(true)
-        console.log('✅ WebM blob created:', blob.size, 'bytes')
-      }
-
-      // Start recording
-      mediaRecorder.start(1000) // Collect data every second
-      console.log('🎬 MediaRecorder started!')
-
-    } catch (error) {
-      console.error('❌ Screen recording failed:', error)
-      setIsRecording(false)
-      alert('Screen recording failed. Please make sure you grant screen sharing permission.')
-    }
-  }, [cameraStream])
-  // ADD CLEANUP AND ERROR HANDLING (after line 350, after stopCamera function):
-
-  // Cleanup recording resources
-  const cleanupRecording = useCallback(() => {
-    if (mediaRecorderRef.current) {
-      if (mediaRecorderRef.current.state === 'recording') {
-        mediaRecorderRef.current.stop()
-      }
-      mediaRecorderRef.current = null
-    }
-    
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(track => track.stop())
-      screenStreamRef.current = null
-    }
-    
-    recordedChunksRef.current = []
-    setIsRecording(false)
-    console.log('🧹 Recording resources cleaned up')
-  }, [])
-
-  // Enhanced reset function
-  const enhancedHandleReset = useCallback(() => {
-    // Clean up recording first
-    cleanupRecording()
-    
-    // Clean up existing camera manually
-    if (cameraStream) {
-      cameraStream.getTracks().forEach((track) => track.stop())
-      setCameraStream(null)
-    }
-    setCameraState('none')
-    
-    // Reset all states
-    setImageList([])
-    setCurrentImageIndex(0)
-    setRevealSteps([])
-    setCurrentStep(0)
-    setShowScreenRecordingInstructions(false)
-    setShowCameraOptions(false)
-    setError(null)
-    setRetryCount(0)
-    setImageDimensions(null)
-    setRecordedBlob(null)
-    setShowPlayback(false)
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
-    
-    console.log('🔄 Complete app reset')
-  }, [cleanupRecording, cameraStream])
-
-  // Check browser compatibility
-  const checkRecordingSupport = useCallback(() => {
-    const issues = []
-    
-    if (!navigator.mediaDevices) {
-      issues.push('Media devices not supported')
-    }
-    
-    if (!navigator.mediaDevices.getDisplayMedia) {
-      issues.push('Screen recording not supported')
-    }
-    
-    if (!window.MediaRecorder) {
-      issues.push('Media recording not supported')
-    }
-    
-    const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor)
-    if (!isChrome) {
-      issues.push('Please use Chrome browser for best recording support')
-    }
-    
-    if (issues.length > 0) {
-      console.warn('⚠️ Recording compatibility issues:', issues)
-      setError(issues.join('. ') + '.')
-      return false
-    }
-    
-    return true
-  }, [])
-
-  // Check recording support on mount
-  useEffect(() => {
-    if (isAppInitialized) {
-      checkRecordingSupport()
-    }
-  }, [isAppInitialized, checkRecordingSupport])
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      cleanupRecording()
-    }
-  }, [cleanupRecording])
-
-  const stopScreenRecording = useCallback(() => {
-    console.log('🛑 Stopping screen recording...')
-
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop()
-    }
-
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(track => track.stop())
-      screenStreamRef.current = null
-    }
-  }, [])
-
   const chooseCameraMode = useCallback(() => {
     setShowCameraOptions(false)
     startCamera() // Directly call startCamera
@@ -827,22 +626,22 @@ export default function TeacherShortsApp() {
       meta.content = 'width=device-width, initial-scale=1.0, user-scalable=no';
       document.getElementsByTagName('head')[0].appendChild(meta);
     }
-
+  
     // Prevent any body scrolling
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
-
+  
     return () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
   }, []);
 
-  useEffect(() => {
+   useEffect(() => {
     const updateViewport = () => {
       const vh = window.innerHeight
       setViewportHeight(vh)
-
+      
       // Detect safe areas
       const testEl = document.createElement('div')
       testEl.style.position = 'fixed'
@@ -850,21 +649,21 @@ export default function TeacherShortsApp() {
       testEl.style.bottom = 'env(safe-area-inset-bottom)'
       testEl.style.visibility = 'hidden'
       document.body.appendChild(testEl)
-
+      
       const computedStyle = getComputedStyle(testEl)
       const topSafe = parseInt(computedStyle.top) || 0
       const bottomSafe = parseInt(computedStyle.bottom) || 0
-
+      
       setSafeAreas({ top: topSafe, bottom: bottomSafe })
       document.body.removeChild(testEl)
-
+      
       console.log('📱 Viewport updated:', { vh, topSafe, bottomSafe })
     }
-
+    
     updateViewport()
     window.addEventListener('resize', updateViewport)
     window.addEventListener('orientationchange', updateViewport)
-
+    
     return () => {
       window.removeEventListener('resize', updateViewport)
       window.removeEventListener('orientationchange', updateViewport)
@@ -885,7 +684,7 @@ export default function TeacherShortsApp() {
       }
     `
     document.head.appendChild(style)
-
+    
     return () => {
       if (document.head.contains(style)) {
         document.head.removeChild(style)
@@ -1143,86 +942,6 @@ export default function TeacherShortsApp() {
     )
   }
 
-  // ADD THIS PLAYBACK CHECK (BEFORE the main return statement, around line 680):
-  
-  // Playback Phase - Show recorded video
-  if (showPlayback && recordedBlob) {
-    const videoUrl = URL.createObjectURL(recordedBlob)
-    
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6">
-            <h2 className="text-xl font-bold text-center mb-4 text-slate-900">
-              Recording Complete! 🎉
-            </h2>
-            
-            {/* Video Player */}
-            <div className="bg-black rounded-lg overflow-hidden mb-4">
-              <video 
-                controls 
-                autoPlay
-                className="w-full h-auto"
-                style={{ maxHeight: '400px' }}
-              >
-                <source src={videoUrl} type="video/webm" />
-                Your browser does not support video playback.
-              </video>
-            </div>
-            
-            {/* File Info */}
-            <div className="text-center mb-4">
-              <p className="text-sm text-slate-600">
-                Size: {(recordedBlob.size / (1024 * 1024)).toFixed(2)} MB
-              </p>
-              <p className="text-sm text-slate-600">
-                Format: WebM (Ready for YouTube Shorts)
-              </p>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="space-y-3">
-              <Button
-                onClick={() => {
-                  const a = document.createElement('a')
-                  a.href = videoUrl
-                  a.download = `math-explanation-${Date.now()}.webm`
-                  document.body.appendChild(a)
-                  a.click()
-                  document.body.removeChild(a)
-                }}
-                className="w-full py-3 bg-green-600 hover:bg-green-700 text-white"
-              >
-                <Upload className="mr-2 h-5 w-5" />
-                Download Video
-              </Button>
-              
-              <Button
-                onClick={() => {
-                  setShowPlayback(false)
-                  setRecordedBlob(null)
-                  setCurrentStep(0)
-                  URL.revokeObjectURL(videoUrl)
-                }}
-                variant="outline"
-                className="w-full py-2"
-              >
-                Record Another
-              </Button>
-              
-              <Button
-                onClick={enhancedHandleReset}
-                variant="ghost"
-                className="w-full py-2 text-slate-600"
-              >
-                Start Over with New Image
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
   // Main App UI
   return (
     <div className="min-h-screen bg-slate-50">
@@ -1317,197 +1036,173 @@ export default function TeacherShortsApp() {
         </div>
       )}
 
-
       {/* Recording Phase (Step 2) - Compact mobile layout NO SCROLL */}
-      {/* Recording Phase (Step 2) - Balanced mobile layout */}
-      {currentImageSrc && (
-        <div
-          className="flex flex-col overflow-hidden bg-slate-50"
+     {/* Recording Phase (Step 2) - Balanced mobile layout */}
+{currentImageSrc && (
+  <div 
+    className="flex flex-col overflow-hidden bg-slate-50"
+    style={{ 
+      height: viewportHeight || '100vh',
+      paddingTop: `${safeAreas.top}px`,
+      paddingBottom: `${safeAreas.bottom}px`
+    }}
+  >
+    {/* Header - visible but compact */}
+    <div 
+      className="flex-shrink-0 py-2 px-4 text-center bg-white shadow-sm relative"
+      style={{ height: `${Math.max(48, 12 + safeAreas.top)}px` }}
+    >
+      <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+        Math Fast APP
+      </h1>
+      <Button
+        onClick={handleReset}
+        variant="ghost"
+        size="icon"
+        className="absolute top-1 right-2 h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 z-50"
+      >
+        <X className="h-4 w-4" />
+      </Button>
+    </div>
+
+    {/* Main content - optimized space for image */}
+        <div 
+      className="flex items-center justify-center px-3 py-1" 
+      style={{ 
+        height: `${viewportHeight - (Math.max(48, 12 + safeAreas.top)) - (Math.max(72, 20 + safeAreas.bottom))}px` 
+      }}
+    >
+      <div className="relative w-full max-w-sm mx-auto h-full">
+        <div 
+          className="relative w-full bg-white rounded-xl overflow-hidden shadow-lg h-full"
           style={{
-            height: viewportHeight || '100vh',
-            paddingTop: `${safeAreas.top}px`,
-            paddingBottom: `${safeAreas.bottom}px`
+            maxHeight: '100%',
+            minHeight: `${Math.min(400, (viewportHeight || 800) * 0.5)}px`
           }}
         >
-          {/* Header - visible but compact */}
-          <div
-            className="flex-shrink-0 py-2 px-4 text-center bg-white shadow-sm relative"
-            style={{ height: `${Math.max(48, 12 + safeAreas.top)}px` }}
-          >
-            <h1 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Math Fast APP
-            </h1>
-            <Button
-              onClick={handleReset}
-              variant="ghost"
-              size="icon"
-              className="absolute top-1 right-2 h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 z-50"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Main content - optimized space for image */}
-          <div
-            className="flex items-center justify-center px-3 py-1"
+          <img
+            src={currentImageSrc}
+            alt="Math problem"
+            className="absolute inset-0 w-full h-full object-contain bg-white"
+            ref={imageRef}
             style={{
-              height: `${viewportHeight - (Math.max(48, 12 + safeAreas.top)) - (Math.max(72, 20 + safeAreas.bottom))}px`
+              transform: 'translateZ(0)',
+              backfaceVisibility: 'hidden'
             }}
-          >
-            <div className="relative w-full max-w-sm mx-auto h-full">
-              <div
-                className="relative w-full bg-white rounded-xl overflow-hidden shadow-lg h-full"
-                style={{
-                  maxHeight: '100%',
-                  minHeight: `${Math.min(400, (viewportHeight || 800) * 0.5)}px`
-                }}
-              >
-                <img
-                  src={currentImageSrc}
-                  alt="Math problem"
-                  className="absolute inset-0 w-full h-full object-contain bg-white"
-                  ref={imageRef}
-                  style={{
-                    transform: 'translateZ(0)',
-                    backfaceVisibility: 'hidden'
-                  }}
-                />
-
-                {/* Processing overlay */}
-                {isProcessingLines && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white z-20">
-                    <div className="text-center">
-                      <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full mx-auto mb-2"></div>
-                      <p className="text-sm">Analyzing...</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Error overlay */}
-                {error && !isProcessingLines && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-white z-20">
-                    <div className="text-center p-4">
-                      <p className="font-semibold mb-3 text-sm">Processing Failed</p>
-                      <div className="flex gap-2 justify-center">
-                        {retryCount < 3 && (
-                          <Button
-                            onClick={handleRetry}
-                            size="sm"
-                            className="bg-white text-red-900 hover:bg-gray-100 text-xs"
-                          >
-                            Retry
-                          </Button>
-                        )}
-                        <Button
-                          onClick={handleReset}
-                          variant="outline"
-                          size="sm"
-                          className="border-white text-white hover:bg-white hover:text-red-900 text-xs"
-                        >
-                          Start Over
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Reveal overlay */}
-                {imageDimensions && (
-                  <div className="absolute inset-0 z-10 pointer-events-none">
-                    <div
-                      className="absolute bg-white transition-all duration-700 ease-in-out"
-                      style={{
-                        left: 0,
-                        top: `${(getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
-                        width: '100%',
-                        height: `${100 - (getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
-                      }}
-                    />
-                  </div>
-                )}
+          />
+          
+          {/* Processing overlay */}
+          {isProcessingLines && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white z-20">
+              <div className="text-center">
+                <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full mx-auto mb-2"></div>
+                <p className="text-sm">Analyzing...</p>
               </div>
             </div>
-          </div>
-
-          {/* Camera overlay - positioned to be fully visible */}
-          {cameraState === 'ready' && cameraStream && (
-            <div className="absolute top-14 right-4 w-16 h-16 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
-              <video
-                ref={visibleVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover transform scale-x-[-1]"
+          )}
+          
+          {/* Error overlay */}
+          {error && !isProcessingLines && (
+            <div className="absolute inset-0 flex items-center justify-center bg-red-900/80 text-white z-20">
+              <div className="text-center p-4">
+                <p className="font-semibold mb-3 text-sm">Processing Failed</p>
+                <div className="flex gap-2 justify-center">
+                  {retryCount < 3 && (
+                    <Button
+                      onClick={handleRetry}
+                      size="sm"
+                      className="bg-white text-red-900 hover:bg-gray-100 text-xs"
+                    >
+                      Retry
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handleReset}
+                    variant="outline"
+                    size="sm"
+                    className="border-white text-white hover:bg-white hover:text-red-900 text-xs"
+                  >
+                    Start Over
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Reveal overlay */}
+          {imageDimensions && (
+            <div className="absolute inset-0 z-10 pointer-events-none">
+              <div
+                className="absolute bg-white transition-all duration-700 ease-in-out"
+                style={{
+                  left: 0,
+                  top: `${(getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
+                  width: '100%',
+                  height: `${100 - (getCurrentRevealHeight() / imageDimensions.height) * 100}%`,
+                }}
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={stopCamera}
-                className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
-              >
-                <X className="h-3 w-3" />
-              </Button>
             </div>
           )}
+        </div>
+      </div>
+    </div>
 
-          {/* Audio-only indicator - positioned to be fully visible */}
-          {cameraState === 'audio-only' && (
-            <div className="absolute top-14 right-4 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
-              <Mic className="h-4 w-4 text-white" />
-            </div>
-          )}
+    {/* Camera overlay - positioned to be fully visible */}
+    {cameraState === 'ready' && cameraStream && (
+      <div className="absolute top-14 right-4 w-16 h-16 bg-black rounded-full overflow-hidden border-2 border-white shadow-lg z-30">
+        <video
+          ref={visibleVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover transform scale-x-[-1]"
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={stopCamera}
+          className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white hover:bg-red-600 p-0"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    )}
 
-          {/* Bottom controls - adequate space */}
-          <div
-            className="flex-shrink-0 bg-white border-t border-slate-200 py-2"
-            style={{ height: `${Math.max(72, 20 + safeAreas.bottom)}px` }}
+    {/* Audio-only indicator - positioned to be fully visible */}
+    {cameraState === 'audio-only' && (
+      <div className="absolute top-14 right-4 w-12 h-12 bg-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg z-30">
+        <Mic className="h-4 w-4 text-white" />
+      </div>
+    )}
+
+    {/* Bottom controls - adequate space */}
+    <div 
+      className="flex-shrink-0 bg-white border-t border-slate-200 py-2"
+      style={{ height: `${Math.max(72, 20 + safeAreas.bottom)}px` }}
+    >
+      <div className="flex items-center justify-center h-full px-4">
+        {/* Initial start button */}
+        {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (
+          <Button
+            onClick={handleStartRecording}
+            className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
           >
-            <div className="flex items-center justify-center h-full px-4">
-              {/* Initial start button */}
-              {currentStep === 0 && revealSteps.length > 0 && !isProcessingLines && cameraState === 'none' && (
-                <Button
-                  onClick={handleStartRecording}
-                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
-                >
-                  <Camera className="mr-2 h-4 w-4" />
-                  Start Recording
-                </Button>
-              )}
-
-              {/* Ready to reveal button - REPLACE THIS SECTION */}
-              {(cameraState === 'ready' || cameraState === 'audio-only') && currentStep === 0 && !isRecording && (
-                <Button
-                  onClick={startScreenRecording}
-                  className="bg-green-600 hover:bg-green-700 text-white shadow-lg px-4 py-2"
-                >
-                  <Camera className="mr-2 h-4 w-4" />
-                  Start Recording
-                </Button>
-              )}
-
-              {/* Recording in progress button */}
-              {isRecording && currentStep === 0 && (
-                <Button
-                  onClick={stopScreenRecording}
-                  className="bg-red-600 hover:bg-red-700 text-white shadow-lg px-4 py-2 animate-pulse"
-                >
-                  <div className="w-3 h-3 bg-white rounded-full mr-2 animate-ping"></div>
-                  Stop Recording
-                </Button>
-              )}
-
-              {/* Start revealing button - only show after recording started */}
-              {isRecording && currentStep === 0 && (
-                <Button
-                  onClick={() => setCurrentStep(1)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2 ml-3"
-                >
-                  Start Explaining
-                </Button>
-              )}
-
-              {/* Navigation controls */}
-              {/* Navigation controls - Updated for recording */}
+            <Camera className="mr-2 h-4 w-4" />
+            Start Recording
+          </Button>
+        )}
+        
+        {/* Ready to reveal button */}
+        {(cameraState === 'ready' || cameraState === 'audio-only') && currentStep === 0 && (
+          <Button
+            onClick={() => setCurrentStep(1)}
+            className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg px-4 py-2"
+          >
+            Start Revealing
+          </Button>
+        )}
+        
+        {/* Navigation controls */}
         {currentStep > 0 && (cameraState === 'ready' || cameraState === 'audio-only') && (
           <div className="flex items-center space-x-3">
             <Button
@@ -1519,19 +1214,9 @@ export default function TeacherShortsApp() {
               <ArrowLeft className="h-4 w-4" />
             </Button>
             
-            {/* Step indicator with recording status */}
-            <div className={`px-3 py-2 rounded-lg text-sm font-medium min-w-[50px] text-center ${
-              isRecording 
-                ? 'bg-red-100 text-red-800 border border-red-300' 
-                : 'bg-slate-100 text-slate-700'
-            }`}>
-              {isRecording && (
-                <div className="flex items-center justify-center space-x-1">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                  <span>REC</span>
-                </div>
-              )}
-              {!isRecording && `${currentStep}/${revealSteps.length}`}
+            {/* Step indicator */}
+            <div className="px-3 py-2 bg-slate-100 rounded-lg text-sm font-medium text-slate-700 min-w-[50px] text-center">
+              {currentStep}/{revealSteps.length}
             </div>
             
             <Button
@@ -1542,22 +1227,12 @@ export default function TeacherShortsApp() {
             >
               <ArrowRight className="h-4 w-4" />
             </Button>
-            
-            {/* Stop recording button during navigation */}
-            {isRecording && (
-              <Button
-                onClick={stopScreenRecording}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 ml-2"
-              >
-                <Square className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         )}
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
+    </div>
+  </div>
+)}
     </div>
   )
 }
